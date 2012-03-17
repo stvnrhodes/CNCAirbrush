@@ -4,6 +4,7 @@
 
 import wx
 import wx.combo
+from wx.lib.wordwrap import wordwrap
 import os
 import Image
 import socket
@@ -61,18 +62,42 @@ class MainWindow(wx.Frame):
     self.SetTitle("XY Plot")
     self.xypanel.Show()
     self.calibratepanel.Hide()
+    self.xypanel.SetFocus()
     self.Layout()
   
   def OnCalibrate(self, e):
     self.SetTitle("Calibrate")
     self.xypanel.Hide()
     self.calibratepanel.Show()
+    self.calibratepanel.SetFocus()
     self.Layout()
   
   def OnAbout(self, e):
-    dlg = wx.MessageDialog(self, "Interface for 102B", "About 102B", wx.OK)
-    dlg.ShowModal()
-    dlg.Destroy()
+    # First we create and fill the info object
+    info = wx.AboutDialogInfo()
+    info.Name = "CNC Airbrush Painter Interface Program"
+    info.Version = "0.1"
+    info.Copyright = "(C) 2012 UC Berkeley ME102B Group 13"
+    info.Description = wordwrap(
+      "This program is used to interface with the CNC Airbrush that Group "
+      "13 is creating for ME102B at UC Berkeley.  It can be used from any "
+      "computer to communicate with the device.  This program is written in "
+      "python using wxPython and should be cross-platform, working on any "
+      "computer that has wifi (basically all modern laptops).",
+      350, wx.ClientDC(self))
+    info.WebSite = ("http://sites.google.com/site/CNCAirbrushPainter",
+                    "Project Website")
+    info.Developers = [ "Electrical: Adam Resnick\n"
+                        "Software: Steven Rhodes\n"
+                        "Mechanical: Marc Russell\n"
+                        "Lead: Robin Young"]
+                        
+    info.License = wordwrap("We haven't bothered deciding on a licence yet",
+                            500, wx.ClientDC(self))
+
+    # Then we call wx.AboutBox giving it that info object
+    wx.AboutBox(info)
+
   
   def OnQuit(self, e):
     """Quit the program"""
@@ -83,28 +108,30 @@ class XYPanel(wx.Panel):
   def __init__(self, parent):
     wx.Panel.__init__(self, parent=parent)
     self.db = wx.Button(self, 10, "A Button!", (20, 20))
+    self.fileselect = FileSelectorCombo(self, size=(150,-1))
+#    self.img = wxImage(100,100)
 
+    
 
 class CalibratePanel(wx.Panel):
   """The panel for calibrating the machine"""
   def __init__(self, parent):
     wx.Panel.__init__(self, parent=parent)
     self.parent = parent
+    
+    self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
     self.control = wx.TextCtrl(self, style=wx.TE_MULTILINE)
     
     self.db = wx.Button(self, 10, "Default Button", (20, 20))
     self.picture = PictureChooser(self)
 
-    self.fileselect = FileSelectorCombo(self, size=(250,-1))
-    
     self.b = wx.Button(self, -1, "Create and Show an ImageDialog", (50,50))
-    self.Bind(wx.EVT_BUTTON, self.OnButton, self.b)
-
+    self.Bind(wx.EVT_BUTTON, self.OnButton, self.b)    
+    
     self.vertSizer = wx.BoxSizer(wx.VERTICAL)
     self.horizSizer = wx.BoxSizer(wx.HORIZONTAL)
     self.horizSizer.Add(self.db, 1, wx.EXPAND)
     self.horizSizer.Add(self.b, 1, wx.EXPAND)
-    self.horizSizer.Add(self.fileselect, 1, wx.EXPAND)
     self.vertSizer.Add(self.horizSizer, 1, wx.EXPAND)
     self.vertSizer.Add(self.control, 1, wx.EXPAND)
     self.SetSizer(self.vertSizer)
@@ -112,6 +139,14 @@ class CalibratePanel(wx.Panel):
     
   def OnButton(self, e):
     self.parent.Close()
+  def OnKeyDown(self, e):
+    keycode = event.GetKeyCode()
+    if keycode == wx.WXK_ESCAPE:
+      ret  = wx.MessageBox('Are you sure to quit?', 'Question', 
+		                       wx.YES_NO | wx.NO_DEFAULT, self)
+      if ret == wx.YES:
+         self.Close()
+    event.Skip()
   
 class PictureChooser(wx.Panel):
   """Panel for displaying the picture you wish to paint"""
@@ -171,6 +206,7 @@ class FileSelectorCombo(wx.combo.ComboCtrl):
   def SetImage(self, path):
     if os.path.splitext(path)[1] == '.bmp':
       self.SetValue(os.path.basename(path))
+      self.path = path
   
   # Overridden from ComboCtrl to avoid assert since there is no ComboPopup
   def DoSetPopupControl(self, popup):
