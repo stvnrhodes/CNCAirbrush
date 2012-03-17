@@ -4,11 +4,13 @@
 
 import wx
 import wx.combo
-import wx.lib.buttons as buttons
 from wx.lib.wordwrap import wordwrap
 import os
 import Image
 import socket
+import cube
+import  wx.lib.filebrowsebutton as filebrowse
+
 
 class MainWindow(wx.Frame):
   """This is the primary window for the program"""
@@ -65,7 +67,7 @@ class MainWindow(wx.Frame):
     self.sizer.Add(self.meshpanel, 1, wx.EXPAND)
     self.SetSizer(self.sizer)
     self.SetTitle("XY Plot")    
-    self.SetSize((500,800))
+    self.SetSize((500,400))
     self.Centre()
   
   def OnCalibrate(self, e):
@@ -129,19 +131,29 @@ class CalibratePanel(wx.Panel):
     wx.Panel.__init__(self, parent=parent)
     self.parent = parent
     
+    positionSizer = self.LoadMotorPositions()    
+
+    arrowSizer = self.LoadArrowKeys()
+    
+    self.mainSizer = wx.BoxSizer(wx.HORIZONTAL)
+    self.mainSizer.Add(positionSizer, 0, wx.ALIGN_CENTER)
+    self.mainSizer.Add(arrowSizer, 1, wx.ALIGN_CENTER)
+    self.SetSizer(self.mainSizer)
+    
+  def LoadMotorPositions(self):
     pb = wx.StaticBox(self, wx.ID_ANY, "Positions of Motors")
     pSizer = wx.StaticBoxSizer(pb, wx.VERTICAL)
     pGrid = wx.GridBagSizer(5,3)
     self.xNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.xBut = buttons.GenButton(self, wx.ID_ANY, "Zero")
+    self.xBut = wx.Button(self, wx.ID_ANY, "Zero")
     self.yNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.yBut = buttons.GenButton(self, wx.ID_ANY, "Zero")
+    self.yBut = wx.Button(self, wx.ID_ANY, "Zero")
     self.zNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.zBut = buttons.GenButton(self, wx.ID_ANY, "Zero")
+    self.zBut = wx.Button(self, wx.ID_ANY, "Zero")
     self.panNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.panBut = buttons.GenButton(self, wx.ID_ANY, "Zero")
+    self.panBut = wx.Button(self, wx.ID_ANY, "Zero")
     self.tiltNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.tiltBut = buttons.GenButton(self, wx.ID_ANY, "Zero")
+    self.tiltBut = wx.Button(self, wx.ID_ANY, "Zero")
     pGrid.AddMany([(wx.StaticText(self, wx.ID_ANY, "X:"), (0,0)),
                    (self.xNum, (0,1)),
                    (self.xBut, (0,2)),
@@ -157,36 +169,82 @@ class CalibratePanel(wx.Panel):
                    (wx.StaticText(self, wx.ID_ANY, "Tilt:"), (4,0)),
                    (self.tiltNum, (4,1)),
                    (self.tiltBut, (4,2))])
-    self.xNum.Enable( False )
-    self.yNum.Enable( False )
-    self.zNum.Enable( False )
-    self.panNum.Enable( False )
-    self.tiltNum.Enable( False )
+    self.xNum.Enable(False)
+    self.yNum.Enable(False)
+    self.zNum.Enable(False)
+    self.panNum.Enable(False)
+    self.tiltNum.Enable(False)
     pSizer.Add(pGrid, 1, wx.EXPAND)
     
-    self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
-    self.control = wx.TextCtrl(self, style=wx.TE_MULTILINE)
-    
-    self.db = wx.Button(self, 10, "Default Button", (20, 20))
-    self.picture = PictureChooser(self)
+    self.gotoButton = wx.ToggleButton(self, wx.ID_ANY, "Go to a Position")
+    self.Bind(wx.EVT_TOGGLEBUTTON, self.GoToMode, self.gotoButton)
+    units = ["in", "mm", "mil"]
+    self.gotoUnitSelect = wx.Choice(self, wx.ID_ANY, (10000,1000), choices = units)
+    self.gotoUnitSelect.SetSelection(0)
 
-    self.b = wx.Button(self, wx.ID_ANY, "Create and Show an ImageDialog", (50,50))
-    self.Bind(wx.EVT_BUTTON, self.OnButton, self.b)    
+    hSizer = wx.BoxSizer(wx.HORIZONTAL)
+    hSizer.AddMany([(self.gotoButton, 0, wx.ALIGN_CENTER),
+                    (wx.StaticText(self, wx.ID_ANY, 
+                    "            Units:"), 0, wx.ALIGN_CENTER),
+                    (self.gotoUnitSelect, 0, wx.ALIGN_CENTER)])
+
+    vSizer = wx.BoxSizer(wx.VERTICAL)
+    vSizer.Add(pSizer, 0)
+    vSizer.Add(hSizer, 1, wx.ALIGN_CENTER)
     
-    self.vertSizer = wx.BoxSizer(wx.VERTICAL)
-    self.horizSizer = wx.BoxSizer(wx.HORIZONTAL)
-    self.horizSizer.Add(self.db, 1, wx.EXPAND)
-    self.horizSizer.Add(self.b, 1, wx.EXPAND)
-    self.vertSizer.Add(self.horizSizer, 1, wx.EXPAND)
-    self.vertSizer.Add(self.control, 1, wx.EXPAND)
-    
-    
-    self.mainSizer = wx.BoxSizer(wx.HORIZONTAL)
-    self.mainSizer.Add(pSizer, 0, wx.ALL)
-    self.mainSizer.Add(self.vertSizer, 1, wx.EXPAND)
-    self.SetSizer(self.mainSizer)
-    
-    
+    return vSizer
+  
+  def GoToMode(self, e):
+    if e.GetEventObject().GetValue():
+      self.xNum.Enable(True)
+      self.yNum.Enable(True)
+      self.zNum.Enable(True)
+      self.panNum.Enable(True)
+      self.tiltNum.Enable(True)
+      self.xBut.SetLabel("Go")
+      self.yBut.SetLabel("Go")
+      self.zBut.SetLabel("Go")
+      self.panBut.SetLabel("Go")
+      self.tiltBut.SetLabel("Go")
+    else:
+      self.xNum.Enable(False)
+      self.yNum.Enable(False)
+      self.zNum.Enable(False)
+      self.panNum.Enable(False)
+      self.tiltNum.Enable(False)
+      self.xBut.SetLabel("Zero")
+      self.yBut.SetLabel("Zero")
+      self.zBut.SetLabel("Zero")
+      self.panBut.SetLabel("Zero")
+      self.tiltBut.SetLabel("Zero")
+  
+  def LoadArrowKeys(self):
+    self.up = self.GetArrow('bitmaps/uparrow.bmp')
+    self.right = self.GetArrow('bitmaps/rightarrow.bmp')
+    self.left = self.GetArrow('bitmaps/leftarrow.bmp')
+    self.down = self.GetArrow('bitmaps/downarrow.bmp')
+    gs = wx.GridSizer(2,3,2,2)
+    gs.AddMany([(wx.Size(), 1, wx.EXPAND),
+                (self.up, 1, wx.EXPAND),
+                (wx.Size(), 1, wx.EXPAND),
+                (self.left, 1, wx.EXPAND),
+                (self.down, 1, wx.EXPAND),
+                (self.right, 1, wx.EXPAND)])
+                
+ #   self.unitSlider = wx.Slider(self, wx.ID_ANY, 
+                
+    vSizer = wx.BoxSizer(wx.VERTICAL)
+    vSizer.Add(gs, 1, wx.ALIGN_CENTER)
+    return vSizer
+  
+  def GetArrow(self, filename):
+    bmp = wx.EmptyBitmap(1,1)
+    bmp.LoadFile(filename, wx.BITMAP_TYPE_ANY)
+    mask = wx.MaskColour(bmp, wx.WHITE)
+    bmp.SetMask(mask)
+    return wx.BitmapButton(self, -1, bmp, (20,20),
+                              (bmp.GetWidth()+10, bmp.GetHeight()+10))
+  
   def OnButton(self, e):
     self.parent.Close()
  
@@ -211,7 +269,23 @@ class XYPanel(wx.Panel):
     self.ch = wx.Choice(self, wx.ID_ANY, (100, 50), choices = possibleColors)
     self.Bind(wx.EVT_CHOICE, self.ColorChange, self.ch)
     self.ch.SetSelection(0)
+    self.fbbh = filebrowse.FileBrowseButtonWithHistory(self, -1, size=(450, -1),
+                                             changeCallback = self.fbbhCallback)
+    sizer = wx.BoxSizer(wx.VERTICAL)
+    sizer.AddMany([(self.db),(self.fileselect),(self.ch),(self.fbbh)])
+    self.SetSizer(sizer)
 #    self.img = wxImage(100,100)
+  def fbbhCallback(self, e):
+    if hasattr(self, 'fbbh'):
+      value = e.GetString()
+      if not value:
+        return
+      #self.log.write('FileBrowseButtonWithHistory: %s\n' % value)
+      history = self.fbbh.GetHistory()
+      if value not in history:
+        history.append(value)
+        self.fbbh.SetHistory(history)
+        self.fbbh.GetHistoryControl().SetStringSelection(value)
 
   def ColorChange(self, e):
     self.parent.sb.SetStatusText(e.GetString(), 1)
@@ -220,14 +294,13 @@ class MeshPanel(wx.Panel):
   """The panel for doing the complex mapping"""
   def __init__(self, parent):
     wx.Panel.__init__(self, parent=parent)
-    bmp = wx.EmptyBitmap(1,1)
-    bmp.LoadFile('bitmaps/uparrow.bmp', wx.BITMAP_TYPE_ANY)
- 
-    mask = wx.MaskColour(bmp, wx.WHITE)
-    bmp.SetMask(mask)
-    b = wx.BitmapButton(self, -1, bmp, (20,20), (20,20))
-    
-  
+    pb = wx.StaticBox(self, wx.ID_ANY, "Cube")
+    pSizer = wx.StaticBoxSizer(pb, wx.VERTICAL)
+    c = cube.CubeCanvas(self)
+    c.SetSize((200, 200))    
+    pSizer.Add(c, 0, wx.ALIGN_CENTER)
+    self.SetSizer(pSizer)
+
 class PictureChooser(wx.Panel):
   """Panel for displaying the picture you wish to paint"""
   def __init__(self, window):
