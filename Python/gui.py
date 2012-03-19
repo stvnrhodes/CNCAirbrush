@@ -4,12 +4,11 @@
 
 import wx
 import wx.combo
+import calibratepanel as cp, xypanel as xp, meshpanel as mp
 from wx.lib.wordwrap import wordwrap
 import os
-import Image
+#import Image
 import socket
-import cube
-import  wx.lib.filebrowsebutton as filebrowse
 
 
 class MainWindow(wx.Frame):
@@ -42,7 +41,7 @@ class MainWindow(wx.Frame):
     self.sb = self.CreateStatusBar()
     self.sb.SetFieldsCount(2)
     self.sb.SetStatusWidths([-5,-2])
-    self.sb.SetStatusText('Hello, World!', 1)
+    self.sb.SetStatusText("No Communication", 1)
     
     self.Bind(wx.EVT_MENU, self.OnAbout, fabout)
     self.Bind(wx.EVT_MENU, self.OnQuit, fquit)
@@ -55,11 +54,11 @@ class MainWindow(wx.Frame):
     """Initialize the primary window"""
     self.InitMenuAndStatus()
 
-    self.calibratepanel = CalibratePanel(self)
+    self.calibratepanel = cp.CalibratePanel(self)
     self.calibratepanel.Show()
-    self.xypanel = XYPanel(self)
+    self.xypanel = xp.XYPanel(self)
     self.xypanel.Hide()
-    self.meshpanel = MeshPanel(self)
+    self.meshpanel = mp.MeshPanel(self)
     self.meshpanel.Hide()
     self.sizer = wx.BoxSizer(wx.VERTICAL)
     self.sizer.Add(self.calibratepanel, 1, wx.EXPAND)
@@ -67,7 +66,7 @@ class MainWindow(wx.Frame):
     self.sizer.Add(self.meshpanel, 1, wx.EXPAND)
     self.SetSizer(self.sizer)
     self.SetTitle("XY Plot")    
-    self.SetSize((500,400))
+    self.SetSize((420,300))
     self.Centre()
   
   def OnCalibrate(self, e):
@@ -109,9 +108,9 @@ class MainWindow(wx.Frame):
       350, wx.ClientDC(self))
     info.WebSite = ("http://sites.google.com/site/CNCAirbrushPainter",
                     "Project Website")
-    info.Developers = [ "Electrical: Adam Resnick\n"
-                        "Software: Steven Rhodes\n"
-                        "Mechanical: Marc Russell\n"
+    info.Developers = [ "Electrical: Adam Resnick, "
+                        "Software: Steven Rhodes,\n"
+                        "Mechanical: Marc Russell, "
                         "Lead: Robin Young"]
                         
     info.License = wordwrap("We haven't bothered deciding on a licence yet",
@@ -125,264 +124,14 @@ class MainWindow(wx.Frame):
     """Quit the program"""
     self.Close()
 
-class CalibratePanel(wx.Panel):
-  """The panel for calibrating the machine"""
-  def __init__(self, parent):
-    wx.Panel.__init__(self, parent=parent)
-    self.parent = parent
-    
-    positionSizer = self.LoadMotorPositions()    
-
-    arrowSizer = self.LoadArrowKeys()
-    
-    self.mainSizer = wx.BoxSizer(wx.HORIZONTAL)
-    self.mainSizer.Add(positionSizer, 0, wx.ALIGN_CENTER)
-    self.mainSizer.Add(arrowSizer, 1, wx.ALIGN_CENTER)
-    self.SetSizer(self.mainSizer)
-    
-  def LoadMotorPositions(self):
-    pb = wx.StaticBox(self, wx.ID_ANY, "Positions of Motors")
-    pSizer = wx.StaticBoxSizer(pb, wx.VERTICAL)
-    pGrid = wx.GridBagSizer(5,3)
-    self.xNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.xBut = wx.Button(self, wx.ID_ANY, "Zero")
-    self.yNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.yBut = wx.Button(self, wx.ID_ANY, "Zero")
-    self.zNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.zBut = wx.Button(self, wx.ID_ANY, "Zero")
-    self.panNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.panBut = wx.Button(self, wx.ID_ANY, "Zero")
-    self.tiltNum = wx.TextCtrl(self, wx.ID_ANY, "0.0")
-    self.tiltBut = wx.Button(self, wx.ID_ANY, "Zero")
-    pGrid.AddMany([(wx.StaticText(self, wx.ID_ANY, "X:"), (0,0)),
-                   (self.xNum, (0,1)),
-                   (self.xBut, (0,2)),
-                   (wx.StaticText(self, wx.ID_ANY, "Y:"), (1,0)),
-                   (self.yNum, (1,1)),
-                   (self.yBut, (1,2)),
-                   (wx.StaticText(self, wx.ID_ANY, "Z:"), (2,0)),
-                   (self.zNum, (2,1)),
-                   (self.zBut, (2,2)),
-                   (wx.StaticText(self, wx.ID_ANY, "Pan:"), (3,0)),
-                   (self.panNum, (3,1)),
-                   (self.panBut, (3,2)),
-                   (wx.StaticText(self, wx.ID_ANY, "Tilt:"), (4,0)),
-                   (self.tiltNum, (4,1)),
-                   (self.tiltBut, (4,2))])
-    self.xNum.Enable(False)
-    self.yNum.Enable(False)
-    self.zNum.Enable(False)
-    self.panNum.Enable(False)
-    self.tiltNum.Enable(False)
-    pSizer.Add(pGrid, 1, wx.EXPAND)
-    
-    self.gotoButton = wx.ToggleButton(self, wx.ID_ANY, "Go to a Position")
-    self.Bind(wx.EVT_TOGGLEBUTTON, self.GoToMode, self.gotoButton)
-    units = ["in", "mm", "mil"]
-    self.gotoUnitSelect = wx.Choice(self, wx.ID_ANY, (10000,1000), choices = units)
-    self.gotoUnitSelect.SetSelection(0)
-
-    hSizer = wx.BoxSizer(wx.HORIZONTAL)
-    hSizer.AddMany([(self.gotoButton, 0, wx.ALIGN_CENTER),
-                    (wx.StaticText(self, wx.ID_ANY, 
-                    "            Units:"), 0, wx.ALIGN_CENTER),
-                    (self.gotoUnitSelect, 0, wx.ALIGN_CENTER)])
-
-    vSizer = wx.BoxSizer(wx.VERTICAL)
-    vSizer.Add(pSizer, 0)
-    vSizer.Add(hSizer, 1, wx.ALIGN_CENTER)
-    
-    return vSizer
-  
-  def GoToMode(self, e):
-    if e.GetEventObject().GetValue():
-      self.xNum.Enable(True)
-      self.yNum.Enable(True)
-      self.zNum.Enable(True)
-      self.panNum.Enable(True)
-      self.tiltNum.Enable(True)
-      self.xBut.SetLabel("Go")
-      self.yBut.SetLabel("Go")
-      self.zBut.SetLabel("Go")
-      self.panBut.SetLabel("Go")
-      self.tiltBut.SetLabel("Go")
-    else:
-      self.xNum.Enable(False)
-      self.yNum.Enable(False)
-      self.zNum.Enable(False)
-      self.panNum.Enable(False)
-      self.tiltNum.Enable(False)
-      self.xBut.SetLabel("Zero")
-      self.yBut.SetLabel("Zero")
-      self.zBut.SetLabel("Zero")
-      self.panBut.SetLabel("Zero")
-      self.tiltBut.SetLabel("Zero")
-  
-  def LoadArrowKeys(self):
-    self.up = self.GetArrow('bitmaps/uparrow.bmp')
-    self.right = self.GetArrow('bitmaps/rightarrow.bmp')
-    self.left = self.GetArrow('bitmaps/leftarrow.bmp')
-    self.down = self.GetArrow('bitmaps/downarrow.bmp')
-    gs = wx.GridSizer(2,3,2,2)
-    gs.AddMany([(wx.Size(), 1, wx.EXPAND),
-                (self.up, 1, wx.EXPAND),
-                (wx.Size(), 1, wx.EXPAND),
-                (self.left, 1, wx.EXPAND),
-                (self.down, 1, wx.EXPAND),
-                (self.right, 1, wx.EXPAND)])
-                
- #   self.unitSlider = wx.Slider(self, wx.ID_ANY, 
-                
-    vSizer = wx.BoxSizer(wx.VERTICAL)
-    vSizer.Add(gs, 1, wx.ALIGN_CENTER)
-    return vSizer
-  
-  def GetArrow(self, filename):
-    bmp = wx.EmptyBitmap(1,1)
-    bmp.LoadFile(filename, wx.BITMAP_TYPE_ANY)
-    mask = wx.MaskColour(bmp, wx.WHITE)
-    bmp.SetMask(mask)
-    return wx.BitmapButton(self, -1, bmp, (20,20),
-                              (bmp.GetWidth()+10, bmp.GetHeight()+10))
-  
-  def OnButton(self, e):
-    self.parent.Close()
- 
-  def OnKeyDown(self, e):
-    keycode = event.GetKeyCode()
-    if keycode == wx.WXK_ESCAPE:
-      ret  = wx.MessageBox("Are you sure to quit?", 'Question', 
-		                       wx.YES_NO | wx.NO_DEFAULT, self)
-      if ret == wx.YES:
-         self.Close()
-    event.Skip()
-
-class XYPanel(wx.Panel):
-  """The panel for plotting XY graphs"""
-  def __init__(self, parent):
-    wx.Panel.__init__(self, parent=parent)
-    self.parent = parent
-    
-    self.db = wx.Button(self, 10, "A Button!", (20, 20))
-    self.fileselect = FileSelectorCombo(self, size=(150,-1))
-    possibleColors = ["Black", "Red", "Blue", "Green"]
-    self.ch = wx.Choice(self, wx.ID_ANY, (100, 50), choices = possibleColors)
-    self.Bind(wx.EVT_CHOICE, self.ColorChange, self.ch)
-    self.ch.SetSelection(0)
-    self.fbbh = filebrowse.FileBrowseButtonWithHistory(self, -1, size=(450, -1),
-                                             changeCallback = self.fbbhCallback)
-    sizer = wx.BoxSizer(wx.VERTICAL)
-    sizer.AddMany([(self.db),(self.fileselect),(self.ch),(self.fbbh)])
-    self.SetSizer(sizer)
-#    self.img = wxImage(100,100)
-  def fbbhCallback(self, e):
-    if hasattr(self, 'fbbh'):
-      value = e.GetString()
-      if not value:
-        return
-      #self.log.write('FileBrowseButtonWithHistory: %s\n' % value)
-      history = self.fbbh.GetHistory()
-      if value not in history:
-        history.append(value)
-        self.fbbh.SetHistory(history)
-        self.fbbh.GetHistoryControl().SetStringSelection(value)
-
-  def ColorChange(self, e):
-    self.parent.sb.SetStatusText(e.GetString(), 1)
-
-class MeshPanel(wx.Panel):
-  """The panel for doing the complex mapping"""
-  def __init__(self, parent):
-    wx.Panel.__init__(self, parent=parent)
-    pb = wx.StaticBox(self, wx.ID_ANY, "Cube")
-    pSizer = wx.StaticBoxSizer(pb, wx.VERTICAL)
-    c = cube.CubeCanvas(self)
-    c.SetSize((200, 200))    
-    pSizer.Add(c, 0, wx.ALIGN_CENTER)
-    self.SetSizer(pSizer)
-
 class PictureChooser(wx.Panel):
   """Panel for displaying the picture you wish to paint"""
   def __init__(self, window):
     self.window = window
 #    fileselect = FileSelectorCombo(self.window, size=(250,-1))
 
-    
-class FileSelectorCombo(wx.combo.ComboCtrl):
-  def __init__(self, *args, **kw):
-    wx.combo.ComboCtrl.__init__(self, *args, **kw)
-
-    # make a custom bitmap showing "..."
-    bw, bh = 14, 16
-    bmp = wx.EmptyBitmap(bw,bh)
-    dc = wx.MemoryDC(bmp)
-
- #   # clear to a specific background colour
-    bgcolor = wx.Colour(255,254,255)
-    dc.SetBackground(wx.Brush(bgcolor))
-    dc.Clear()
-
-    # draw the label onto the bitmap
-    label = "..."
-    font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
-    font.SetWeight(wx.FONTWEIGHT_BOLD)
-    dc.SetFont(font)
-    tw,th = dc.GetTextExtent(label)
-    dc.DrawText(label, (bw-tw)/2, (bw-tw)/2)
-    del dc
-
-    # now apply a mask using the bgcolor
-    bmp.SetMaskColour(bgcolor)
-
-    # and tell the ComboCtrl to use it
-    self.SetButtonBitmaps(bmp, True)
-
-    # Enable Drag and Drop
-    dt = MyFileDropTarget(self)
-    self.SetDropTarget(dt)
-        
-
-  # Overridden from ComboCtrl, called when the combo button is clicked
-  def OnButtonClick(self):
-    path = ""
-    name = ""
-    if self.GetValue():
-      path, name = os.path.split(self.GetValue())
-        
-    dlg = wx.FileDialog(self, "Choose File", path, name,
-                        "BMP files (*.bmp)|*.bmp", wx.FD_OPEN)
-    if dlg.ShowModal() == wx.ID_OK:
-      self.SetImage(dlg.GetPath())
-    dlg.Destroy()
-    self.SetFocus()
-
-  def SetImage(self, path):
-    if os.path.splitext(path)[1] == '.bmp':
-      self.SetValue(os.path.basename(path))
-      self.path = path
-  
-  # Overridden from ComboCtrl to avoid assert since there is no ComboPopup
-  def DoSetPopupControl(self, popup):
-    pass
-    
-class MyFileDropTarget(wx.FileDropTarget):
-  """Augments File Selector Combo with Drag n Drop"""
-  def __init__(self, target):
-    wx.FileDropTarget.__init__(self)
-    self.target = target
-
-  def OnDropFiles(self, x, y, filenames):
-    #self.target.SetInsertionPointEnd()
-    self.target.SetImage(filenames[0])
-#    self.window.WriteText("\n%d file(s) dropped at %d,%d:\n" %
-#                          (len(filenames), x, y))
-
-#    for file in filenames:
-#      self.window.WriteText(file + '\n')
-    
- 
 if __name__ == '__main__':
-  app = wx.App(False)
+  app = wx.App()
   frame = MainWindow(None)
   frame.Show()
   app.MainLoop()
