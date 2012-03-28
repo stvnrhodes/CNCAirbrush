@@ -1,0 +1,2 @@
+STEPS_PER_PIXEL = 3
+FEED_RATE = 100 # in steps/s

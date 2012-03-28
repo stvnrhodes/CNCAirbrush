@@ -1,4 +1,5 @@
-import wx, cube
+import wx
+import cube
 
 class MeshPanel(wx.Panel):
   """The panel for doing the complex mapping"""
