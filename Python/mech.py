@@ -41,7 +41,7 @@ class Convert:
 class Machine:
   """The class that will send data to the machine."""
 
-  def __init__(*args, **kargs):
+  def __init__(self, *args, **kargs):
     self.com = Communicate()
   
   def set_points(self, p1=None, p2=None, p3=None):
@@ -79,21 +79,21 @@ class Machine:
     elif axis == 'z':
       self._move_rel((0, 0, num))
   
-  def _change_angle(self, angles)
+  def _change_angle(self, angles):
     """Send angle change command to machine"""
     angles = [Convert.angleToInt(x) for x in angles]
-    self.com.send('g
+    self.com.send('g03 ' + ' '.join([str(x) for x in location]))
   
   def _move_rel(self, location):
     """Send relative movement command to machine"""
     location = [round(x) for x in location]
-    self.com.send('g00 ' + ' '.join([str(x) for x in location])
+    self.com.send('g00 ' + ' '.join([str(x) for x in location]))
   
   def _get_img_data(self):
     return self.pic.resize(get_size()).convert('1')
   
   
-class Communicate(self):
+class Communicate:
   """This class handles the low-level communication details."""
   
   def send(self, msg):
