@@ -3,9 +3,33 @@ This program is used to interface with the CNC Airbrush that Group 13 is creatin
 Command list (All variables are integers except where specified):
 g00 x y z = Move relative to current position
 g01 x y z feedrate = Move relative to current position at feedrate steps/s
-g02 x1 y1 z1 x2 y2 z2 imageData = Make image with corners at current position, 
-                                  (x1,y1,z1), and (x2,y2,z2).  Imagedata is a 
+g02 x1 y1 z1 x2 y2 z2 imageData = Make image with corners at current position,
+                                  (x1,y1,z1), and (x2,y2,z2).  Imagedata is a
                                   B&W image, in BMP format.
 g03 pan tilt = Change pan and tilt to the given values
+g04 solenoid_on = Turn solenoid on or off
+g05 x1 y1 z1 x2 y2 z2 = Go through the stepper motions of making an image
 g28 = Move to home position (minimum x, y, z)
 s stepsPerPixel defaultFeedrate = Set various parameters
+
+TODO(4/11/2012):
+Get Sockets working
+Make Run change to Stop when in motion
+Add option to disable solenoid for a run
+Add option to trigger solenoid
+Add text saying image size
+Add option to change tilt to image size
+Resize preview image based on image size
+No preview if points not selected
+No run if points not selected
+Add color changing for altered image
+Use kinematics to change image size on image tilt
+Autochange image size when zeroing position
+Remove Final Image option
+Add keyboard shortcuts for changing position
+Add double clicking to close preview
+Update status text
+Check viability of sending floats
+Alert for errors
+Only allow running if not editing image size
+Add options  menu with feedrate, reversing motors, wifly ip address
