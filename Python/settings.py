@@ -1,4 +1,1 @@
-STEPS_PER_PIXEL = 3
-FEED_RATE = 100 # in steps/s
-IP_ADDRESS = '192.168.1.1'
-IMG_SIZE = 400
+
