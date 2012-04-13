@@ -10,7 +10,6 @@ from threading import Timer
 from mech import Machine, Convert
 
 IMG_SIZE = 400
-m = Machine()
 
 
 class MainWindow(wx.Frame):
@@ -19,9 +18,9 @@ class MainWindow(wx.Frame):
   def __init__(self, *args, **kwargs):
     """Create the primary window"""
     super(MainWindow, self).__init__(*args, **kwargs)
-    self._init_ui()
     self._init_menu_and_status()
-    m.set_status_function(self.sb.SetStatusText)
+    self.m = Machine(self)
+    self._init_ui()
 
   def _init_menu_and_status(self):
     """Initialize the menu bar and status bar"""
@@ -70,8 +69,8 @@ class MainWindow(wx.Frame):
     self.SetTitle("ME102B Airbrush Program")
     self.SetSize((1024,750))
     self.Centre()
-    #self.positions._goto_mode(None) 
-    
+    #self.positions._goto_mode(None)
+
   def OnShortcuts(self, e):
     dlg = wx.MessageDialog(self, 'I haven\'t done this bit yet',
                            'TODO',
@@ -122,6 +121,7 @@ class AxisEdit(wx.Panel):
   def __init__(self, parent, axis):
     wx.Panel.__init__(self, parent=parent)
     self.parent = parent
+    self.m = parent.m
     self.axis = axis
     self.text = wx.StaticText(self, wx.ID_ANY, size = (25,-1),
                               label=(self.axis + ':'))
@@ -171,7 +171,7 @@ class AxisEdit(wx.Panel):
         dlg.Destroy()
       else:
         print 'goto ' + str(self.get_num()) + ' on ' + self.axis
-        m.jog(self.axis, num, self.parent.get_units())
+        self.m.jog(self.axis, num, self.parent.get_units())
     else:
       print 'zero ' + self.axis
       # TODO: make machine zero
@@ -190,6 +190,7 @@ class Positions(wx.Panel):
 
   def __init__(self, parent):
     wx.Panel.__init__(self, parent=parent)
+    self.m = parent.m
     self.units = ["in", "mm", "mil", "step"]
     self.x = AxisEdit(self, 'X')
     self.y = AxisEdit(self, 'Y')
@@ -234,44 +235,47 @@ class Positions(wx.Panel):
   def get_units(self):
     """Get the units we're currently using"""
     return self.goto_unit_select.GetStringSelection()
-  
+
   def _mech_unit_update(self, e):
-    e.set_units(self.get_units())
+    self.m.set_units(self.get_units())
+    pass
 
   def _update_xyz(self, e):
-    pos = m.get_position()
+    pos = self.parent.m.get_position()
     print 'hi'
+
 
 class ArrowDial(wx.Panel):
   """A panel for all of the calibration arrows"""
 
   def __init__(self, parent):
     wx.Panel.__init__(self, parent=parent)
+    self.m = parent.m
     self.units = ["in", "mm", "mil", "step"]
     self.xUp = self._get_arrow('bitmaps/uparrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('x', '+'), self.xUp)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('x', 1), self.xUp)
     self.xDown = self._get_arrow('bitmaps/downarrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('x', '-'), self.xDown)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('x', -1), self.xDown)
     xbagSizer = self._get_arrow_control(self.xUp, self.xDown, "X")
     self.yUp = self._get_arrow('bitmaps/uparrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('y', '+'), self.yUp)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('y', 1), self.yUp)
     self.yDown = self._get_arrow('bitmaps/downarrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('y', '-'), self.yDown)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('y', -1), self.yDown)
     ybagSizer = self._get_arrow_control(self.yUp, self.yDown, "Y")
     self.zUp = self._get_arrow('bitmaps/uparrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('z', '+'), self.zUp)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('z', 1), self.zUp)
     self.zDown = self._get_arrow('bitmaps/downarrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('z', '-'), self.zDown)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('z', -1), self.zDown)
     zbagSizer = self._get_arrow_control(self.zUp, self.zDown, "Z")
     self.panUp = self._get_arrow('bitmaps/uparrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('pan', '+'), self.panUp)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('pan', 1), self.panUp)
     self.panDown = self._get_arrow('bitmaps/downarrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('pan', '-'), self.panDown)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('pan', -1), self.panDown)
     panbagSizer = self._get_arrow_control(self.panUp, self.panDown, "Pan")
     self.tiltUp = self._get_arrow('bitmaps/uparrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('tilt', '+'), self.tiltUp)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('tilt', 1), self.tiltUp)
     self.tiltDown = self._get_arrow('bitmaps/downarrow.bmp')
-    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('tilt', '-'), self.tiltDown)
+    self.Bind(wx.EVT_BUTTON, lambda event: self._jog('tilt', -1), self.tiltDown)
     tiltbagSizer = self._get_arrow_control(self.tiltUp, self.tiltDown, "Tilt")
     trans_sizer = wx.BoxSizer(wx.HORIZONTAL)
     self.trans_num = wx.SpinCtrl(self, wx.ID_ANY, "1", size = (60,-1))
@@ -316,7 +320,6 @@ class ArrowDial(wx.Panel):
     sizer.Add(down, flag = wx.ALIGN_CENTER_HORIZONTAL)
     return sizer
 
-
   def _get_arrow(self, filename):
     bmp = wx.EmptyBitmap(1,1)
     bmp.LoadFile(filename, wx.BITMAP_TYPE_ANY)
@@ -327,7 +330,9 @@ class ArrowDial(wx.Panel):
 
   def _jog(self, axis, direction):
     """Sends the jog command"""
-    # TODO: Add Jog
+    if axis in 'xXyYzZ':
+      self.m.jog(axis, direction*self.trans_num.GetValue(),
+                 self.trans_units.GetStringSelection())
     print 'Jog ' + axis + 'in' + str(direction)
 
 
@@ -337,6 +342,7 @@ class ChoosePoint(wx.Panel):
   def __init__(self, parent, point):
     wx.Panel.__init__(self, parent=parent)
     self.point = point
+    self.m = parent.m
     self.text = wx.StaticText(self, wx.ID_ANY, size = (-1,-1),
                               label=("Point " + point + ":"))
     self.x = wx.TextCtrl(self, wx.ID_ANY, validator=NumValidator())
@@ -373,13 +379,13 @@ class ChoosePoint(wx.Panel):
     """Store the point in the machine and update the value"""
     self.update_strings(xyz)
     if self.point == 'A':
-      m.set_points(p1=self._get_values())
+      self.m.set_points(p1=self._get_values())
     elif self.point == 'B':
-      m.set_points(p2=self._get_values())
+      self.m.set_points(p2=self._get_values())
     elif self.point == 'C':
-      m.set_points(p3=self._get_values())
+      self.m.set_points(p3=self._get_values())
     else:
-      raise Exception("Invalid Point " + str(m.point))
+      raise Exception("Invalid Point " + str(self.point))
     print 'Set Point at '  + str(xyz)
 
   def _edit_values(self, e):
@@ -418,14 +424,15 @@ class PlanePoints(wx.Panel):
 
   def __init__(self, parent):
     wx.Panel.__init__(self, parent=parent)
+    self.m = parent.m
     self.point_a = ChoosePoint(self, 'A')
     self.point_b = ChoosePoint(self, 'B')
     self.point_c = ChoosePoint(self, 'C')
     point_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY,
                  "Points to define the drawing area"), wx.VERTICAL)
-    point_sizer.Add(self.point_a, flag=wx.ALIGN_CENTER_HORIZONTAL)
-    point_sizer.Add(self.point_b, flag=wx.ALIGN_CENTER_HORIZONTAL)
-    point_sizer.Add(self.point_c, flag=wx.ALIGN_CENTER_HORIZONTAL)
+    point_sizer.Add(self.point_a, flag=wx.ALIGN_RIGHT)
+    point_sizer.Add(self.point_b, flag=wx.ALIGN_RIGHT)
+    point_sizer.Add(self.point_c, flag=wx.ALIGN_RIGHT)
     self.size_text = wx.StaticText(self, wx.ID_ANY, "Image Size is undefined")
     vertical_sizer = wx.BoxSizer(wx.VERTICAL)
     vertical_sizer.Add(point_sizer, 0)
@@ -441,7 +448,13 @@ class PlanePoints(wx.Panel):
 
   def update_size_text(self):
     """Tell the panel to poll the machine for size"""
-    self.parent.positions.get_units()
+    s = self.m.get_pic_size()
+    if s:
+      self.size_text.SetLabel("Image Size is %.2f %s by %.2f %s" %
+                              (s[0], s[2], s[1], s[2]))
+    else:
+      self.size_text.SetLabel("Image Size is undefined")
+   
 
 class NumValidator(wx.PyValidator):
   """Only allow numbers to be entered in number fields"""
@@ -473,12 +486,15 @@ class NumValidator(wx.PyValidator):
       wx.Bell()
     return
 
+
 class XYPanel(wx.Panel):
 
   """The panel for plotting XY graphs"""
   def __init__(self, parent):
     wx.Panel.__init__(self, parent=parent)
     self.parent = parent
+    self.m = parent.m
+    self.img = None
 
     preview_button = wx.Button(self, wx.ID_ANY, "Preview")
     self.Bind(wx.EVT_BUTTON, self._on_preview, preview_button)
@@ -486,6 +502,9 @@ class XYPanel(wx.Panel):
     run_button = wx.Button(self, wx.ID_ANY, "Run", size=(120,60))
     run_button.SetBackgroundColour('#00ff00')
     self.Bind(wx.EVT_BUTTON, self._on_run, run_button)
+
+    practice_run_button = wx.Button(self, wx.ID_ANY, "Run Without Painting")
+    self.Bind(wx.EVT_BUTTON, self._on_run, practice_run_button)
 
     self.fileselect = FileImageSelectorCombo(self, size=(150,-1))
     possibleColors = ["Greyscale", "Red", "Green", "Blue", "Final Image"]
@@ -511,6 +530,7 @@ class XYPanel(wx.Panel):
     left_sizer.Add(self.orig_image_display, flag = wx.ALIGN_CENTER)
     left_sizer.Add(self.fileselect, flag = wx.ALIGN_CENTER)
     left_sizer.Add(run_button, flag = wx.ALIGN_CENTER)
+    left_sizer.Add(practice_run_button, flag = wx.ALIGN_CENTER)
 
     self.wx_img = wx.EmptyBitmap(IMG_SIZE, IMG_SIZE)
     self.editImg = wx.StaticBitmap(self, wx.ID_ANY,
@@ -568,7 +588,7 @@ class XYPanel(wx.Panel):
                              "Still Editing Drawing Area", wx.OK|wx.ICON_ERROR)
       dlg.ShowModal()
       dlg.Destroy()
-    elif not m.all_points_defined():
+    elif not self.m.all_points_defined():
       dlg = wx.MessageDialog(self, "You can\'t show a preview of the proper "
                                    "size if you haven't decided on its size. "
                                    "That doesn\'t make any "
@@ -576,11 +596,20 @@ class XYPanel(wx.Panel):
                                    "Undefined Points", wx.OK|wx.ICON_ERROR)
       dlg.ShowModal()
       dlg.Destroy()
+    elif not self.img:
+      dlg = wx.MessageDialog(self, "You can\'t show a preview of a picture if "
+                                   "you haven't chosen the picture. "
+                                   "That doesn\'t make any "
+                                   "sense at all.  It\'s just silly",
+                                   "Undefined Picture", wx.OK|wx.ICON_ERROR)
+      dlg.ShowModal()
+      dlg.Destroy() 
     else:
+      size = self.m.get_pic_pixel_count()
       win = SamplePic(self, "Preview", style=wx.DEFAULT_FRAME_STYLE |
-                      wx.TINY_CAPTION_HORIZ, size = (800, 800), img = self.img,
-                      x = self.color_filter.GetSelection(),
-                      cutoff = self.threshold_slider.GetValue())
+                      wx.TINY_CAPTION_HORIZ, size=size, img=self.img,
+                      x=self.color_filter.GetSelection(),
+                      cutoff=self.threshold_slider.GetValue())
       win.CenterOnParent(wx.BOTH)
       win.Show(True)
 

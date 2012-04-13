@@ -1,8 +1,8 @@
-X_STEP_INCH = 1
-Y_STEP_INCH = 1
-Z_STEP_INCH = 1
-PAN_INT_ANGLE = 360 / 1024
-TILT_INT_ANGLE = 90 / 1024
+X_STEP_INCH = 200/.2
+Y_STEP_INCH = 200/.2
+Z_STEP_INCH = 200/.125
+PAN_INT_ANGLE = 1.0 / 360
+TILT_INT_ANGLE = 1.0 / 90
 STEPS_PER_PIXEL = 3
 FEED_RATE = 100 # in steps/s
 HOST = '169.254.1.1'
@@ -17,16 +17,16 @@ import os
 class Convert:
 
   def int_to_angle(cls, int, axis='pan'):
-    return int * cls._get_factor(axis)
+    return (int * cls._get_factor(axis)) % 360
 
   def angle_to_int(cls, angle, axis='pan'):
-    return round(angle / cls._get_factor(axis))
+    return round((angle % 360) / cls._get_factor(axis))
 
   def step_to_unit(cls, step, unit='in', axis='x'):
-    return step * cls._get_factor(axis, unit)
+    return float(step) / cls._get_factor(axis, unit)
 
   def unit_to_step(cls, num, unit='in', axis='x'):
-    return round(num / cls._get_factor(axis, unit))
+    return long(num * cls._get_factor(axis, unit))
 
   def _get_factor(cls, axis, unit='in'):
     if axis in 'xX':
@@ -40,9 +40,9 @@ class Convert:
     elif axis == 'tilt':
       factor = TILT_INT_ANGLE
     if unit == 'mil':
-      factor *= 1000
+      factor /= 1000
     elif unit == 'mm':
-      factor *= 25.4
+      factor /= 25.4
     elif unit == 'step':
       factor = 1
     return factor
@@ -55,7 +55,8 @@ class Machine:
   """The class that will send data to the machine."""
 
   def __init__(self, *args, **kargs):
-    self.update_status = lambda x, y: None
+    self.parent = args[0]
+    self.update_status = self.parent.sb.SetStatusText
     self.com = Communicate(self)
     self.p1 = None
     self.p2 = None
@@ -70,16 +71,17 @@ class Machine:
     p1 and p2 determine the base, p3 determines the height
     """
     if p1 != None:
-      self.p1 = Vector(self._tuple_to_step(p1))
+      self.p1 = Vector(p1)
     if p2 != None:
-      self.p2 = Vector(self._tuple_to_step(p2))
+      self.p2 = Vector(p2)
     if p3 != None:
-      self.p3 = Vector(self._tuple_to_step(p3))
+      self.p3 = Vector(p3)
     if self._plane_points_defined():
       self.base = self.p2 - self.p1
       self.height = self.p3 - self.p1
       if self.height.length() != 0:
         self.height -= self.base.proj(self.height)
+        self.parent.plane_points.update_size_text()
         self.normal = self.base.cross(self.height)
         if self.normal.theta() > 90:
           self.normal = -self.normal
@@ -106,38 +108,46 @@ class Machine:
 
   def get_longest_side_size(self):
     """Returns the size in steps of the picture."""
-    return (self.base.longest(), self.height.longest())
+    base = Vector(self._tuple_to_step(self.base.tuple()))
+    height = Vector(self._tuple_to_step(self.height.tuple()))
+    return (base.longest(), height.longest())
+
+  def get_pic_pixel_count(self):
+    """Returns the size in pixels of the picture"""
+    return ([x / STEPS_PER_PIXEL for x in self.get_longest_side_size()])
+    
+  def get_pic_size(self):
+    """Get the size of the picture to be drawn"""
+    if self.all_points_defined():
+      return (self.base.length(), self.height.length(), self.units)
+    else:
+      return None
 
   def get_position(self):
     """Queries the machine for the current position of X, Y Z, Pan, and Tilt"""
-
 
   def jog(self, axis, num, unit = 'step'):
     """Moves num units in axis direction"""
     if axis in 'xX':
       num = convert.unit_to_step(num, unit, axis)
-      self._move_rel((num, 0, 0))
+      self.com.send_g00((num, 0, 0))
     elif axis in 'yY':
       num = convert.unit_to_step(num, unit, axis)
-      self._move_rel((0, num, 0))
+      self.com.send_g00((0, num, 0))
     elif axis in 'zZ':
       num = convert.unit_to_step(num, unit, axis)
-      self._move_rel((0, 0, num))
-
+      self.com.send_g00((0, 0, num))
+      
   def _change_angle(self, angles):
     """Send angle change command to machine"""
     angles = [convert.angleToInt(x) for x in angles]
     self.com.send('g03 ' + ' '.join([str(x) for x in location]))
 
-  def _move_rel(self, location):
-    """Send relative movement command to machine"""
-    location = [round(x) for x in location]
-    self.com.send('g00 ' + ' '.join([str(x) for x in location]))
-
   def _get_img_data(self):
     return self.pic.resize(get_size()).convert('1')
 
   def _tuple_to_step(self, tuple):
+    """We'll use this in the final step to convert to steps"""
     return (convert.unit_to_step(tuple[0], self.units, 'x'),
             convert.unit_to_step(tuple[1], self.units, 'y'),
             convert.unit_to_step(tuple[2], self.units, 'z'))
@@ -148,24 +158,36 @@ class Communicate:
 
   def __init__(self, machine):
     self.m = machine
+    self.connected = False
+    self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.connect()
 
   def connect(self):
     """Attempt to connect to the WiFly"""
-    try:
-      self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      self.s.connect((HOST, PORT))
-      self.connected = True
-      self.m.update_status("Connected to mBed", 1)
-    except socket.error, msg:
-      self.connected = False
-      self.s.close()
-      self.m.update_status("No Communication", 1)
+    if '169.254.1.' not in socket.gethostbyname(socket.gethostname()):
+      self.m.update_status("Improper IP Address", 1)
+    else:
+      try:
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((HOST, PORT))
+        self.connected = True
+        self.m.update_status("Connected to mBed", 1)
+      except socket.error, msg:
+        self.connected = False
+        self.m.update_status("No Communication", 1)
 
   def disconnect(self):
     self.s.close()
     self.connected = False
-      
+
+  def send_g00(self, location):
+    """Send the G00 Message, moving relative to current position"""
+    print location
+    self.send('g00 ' + ' '.join([hex(long(x))[2:-1] for x in location]))
+
+  def send_g03(self, angles):
+    """Send angle change command to machine"""
+    self.com.send('g03 ' + ' '.join([float(x).hex() for x in location]))
   def send(self, msg):
     """Send the message to the machine"""
     if not self.connected:
@@ -173,10 +195,12 @@ class Communicate:
     try:
       self.m.update_status("Sending to mBed: " + str(msg), 0)
       self.s.send(msg)
+      self.s.recv(1024)
       self.m.update_status("Sent to mBed: " + str(msg), 0)
       self.m.update_status("Connected to mBed", 1)
       self.disconnect()
-    except socket.error, msg:
+    except socket.error, errormsg:
+      self.m.update_status("Failure to send: " + str(msg), 0)
       self.connect()
 
   def send_image(self, img):
@@ -188,12 +212,14 @@ class Communicate:
       self.m.update_status("Sending Image to mBed", 0)
       with open('.temp', 'rb') as f:
         self.s.send(binascii.hexlify(f.read()))
+      self.s.recv(1024)
       os.remove('.temp')
-      self.m.update_status("Image Sent", 0)   
-      self.disconnect()      
+      self.m.update_status("Image Sent", 0)
+      self.disconnect()
     except socket.error, msg:
-      self.connect()
-    
+      self.m.update_status("Failed to send Image", 0)
+      self.m.connect
+
 
   def get_data(self):
     """Retrieve relevant data from the machine"""
@@ -274,7 +300,7 @@ class Vector:
 
   def theta(self):
     """The angle between -z and the vector."""
-    return math.acos(self * Vector((0,0,-1)) / self._length()) * 180 / math.pi
+    return math.acos(self * Vector((0,0,-1)) / self.length()) * 180 / math.pi
 
   def proj(self, other):
     """The projection of the other vector onto this vector."""

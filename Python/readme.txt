@@ -6,7 +6,7 @@ g01 x y z feedrate = Move relative to current position at feedrate steps/s
 g02 x1 y1 z1 x2 y2 z2 imageData = Make image with corners at current position,
                                   (x1,y1,z1), and (x2,y2,z2).  Imagedata is a
                                   B&W image, in BMP format.
-g03 pan tilt = Change pan and tilt to the given values
+g03 pan tilt = Change pan and tilt to the given values (Floats between 0 and 1)
 g04 solenoid_on = Turn solenoid on or off
 g05 x1 y1 z1 x2 y2 z2 = Go through the stepper motions of making an image
 g06 = Query for current x, y, z
@@ -19,9 +19,9 @@ Get Sockets working - DONE
 Make Run change to Stop when in motion
 Add option to disable solenoid for a run
 Add option to trigger solenoid
-Add text saying image size
+Add text saying image size - Done
 Add option to change tilt to image size
-Resize preview image based on image size
+Resize preview image based on image size - Done
 No preview if points not selected - DONE
 No run if points not selected
 Add color changing for altered image
@@ -32,8 +32,11 @@ Allow holding down buttons
 Remove Final Image option
 Add keyboard shortcuts for changing position
 Add double clicking to close preview
-Update status text
-Check viability of sending floats - Not relecant
+Update status text - DONE
+Prevent drawing in upper hemisphere
 Alert for errors
 Only allow running if not editing image size
 Add options  menu with feedrate, reversing motors, wifly ip address, port
+
+Parse BMP
+Parse Integer
