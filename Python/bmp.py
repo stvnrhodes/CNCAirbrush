@@ -5,7 +5,7 @@ HOST = '169.254.1.1'
 PORT = 2000
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
-img = Image.open('bitmaps/rightarrow.bmp')
+img = Image.open('a.bmp')
 img.resize((2,2)).convert('1').save('.temp', 'bmp')
 with open('.temp', 'rb') as f:
   s.send(binascii.hexlify(f.read()))
