@@ -10,8 +10,9 @@ PORT = 2000
 
 import math
 import socket
-import binascii
 import os
+from binascii import hexlify, unhexlify
+from struct import pack, unpack
 
 
 class Convert:
@@ -115,7 +116,7 @@ class Machine:
   def get_pic_pixel_count(self):
     """Returns the size in pixels of the picture"""
     return ([x / STEPS_PER_PIXEL for x in self.get_longest_side_size()])
-    
+
   def get_pic_size(self):
     """Get the size of the picture to be drawn"""
     if self.all_points_defined():
@@ -137,7 +138,10 @@ class Machine:
     elif axis in 'zZ':
       num = convert.unit_to_step(num, unit, axis)
       self.com.send_g00((0, 0, num))
-      
+    elif axis in "Panpan":
+      num = convert.int_to_angle(num, axis)
+      self.com.send_g00((0, 0, num))
+
   def _change_angle(self, angles):
     """Send angle change command to machine"""
     angles = [convert.angleToInt(x) for x in angles]
@@ -182,12 +186,61 @@ class Communicate:
 
   def send_g00(self, location):
     """Send the G00 Message, moving relative to current position"""
-    print location
-    self.send('g00 ' + ' '.join([hex(long(x))[2:-1] for x in location]))
+    self.send('g00 ' + ' '.join([hexlify(pack('l', long(x)))
+                                 for x in location]))
 
-  def send_g03(self, angles):
-    """Send angle change command to machine"""
-    self.com.send('g03 ' + ' '.join([float(x).hex() for x in location]))
+  def send_g01(self, p1, p2):
+    """Send the information to go along the path for the image"""
+    self.send('g01 ' +  ' '.join([hexlify(pack('l', long(x)))
+                                 for x in p1]) +
+              ' ' + ' '.join([hexlify(pack('l', long(x))) for x in p2]))
+
+  def send_g02(self, p1, p2, img):
+    """Send all the information needed to make the image"""
+    self.send('g01 ' +  ' '.join([hexlify(pack('l', long(x))) for x in p1]) + 
+              ' ' + ' '.join([hexlify(pack('l', long(x))) for x in p2]))
+    self.send_image(img)
+
+  def send_g03(self, angle):
+    """Send pan angle change command to machine"""
+    self.send('g03 ' + ' '.join([hexlify(pack('f', float(x)))
+                                     for x in location]))
+
+  def send_g04(self, angle):
+    """Send tilt angle change command to machine"""
+    self.send('g03 ' + ' '.join([hexlify(pack('f', float(x)))
+                                     for x in location]))
+
+  def send_g05(self, duty, hz):
+    """Send solenoid pwm command to the machine"""
+    self.send('g05 ' + hexlify(pack('f', float(duty))) + ' ' + 
+                  hexlify(pack('f', long(hz))))
+
+  def send_g06(self, time):
+    """Send command to turn on the solenoid for time ms"""
+    self.send('g06 ' + hexlify(pack('l', long(time))))
+    
+  def send_g07(self):
+    """Get positions and angles"""
+    data = self.send('g07').split()
+    pos = [unpack('l', unhexlify(x)) for x in data[:3]]
+    angle = [unpack('f', unhexlify(x)) for x in data[3:]]
+    return pos, angle
+
+  def send_g08(self):
+    """Get positions"""
+    data = self.send('g08').split()
+    return [unpack('l', unhexlify(x)) for x in data]
+    
+  def send_g09(self):
+    """"Get angles"""
+    data = self.send('g09').split()
+    return [unpack('f', unhexlify(x)) for x in data]
+    
+  def send_g10(self):
+    """Stop everything"""
+    self.send('g10')
+    
   def send(self, msg):
     """Send the message to the machine"""
     if not self.connected:
@@ -195,10 +248,11 @@ class Communicate:
     try:
       self.m.update_status("Sending to mBed: " + str(msg), 0)
       self.s.send(msg)
-      self.s.recv(1024)
+      data = self.s.recv(1024)
       self.m.update_status("Sent to mBed: " + str(msg), 0)
       self.m.update_status("Connected to mBed", 1)
       self.disconnect()
+      return data
     except socket.error, errormsg:
       self.m.update_status("Failure to send: " + str(msg), 0)
       self.connect()
@@ -211,7 +265,7 @@ class Communicate:
     try:
       self.m.update_status("Sending Image to mBed", 0)
       with open('.temp', 'rb') as f:
-        self.s.send(binascii.hexlify(f.read()))
+        self.s.send(hexlify(f.read()))
       self.s.recv(1024)
       os.remove('.temp')
       self.m.update_status("Image Sent", 0)
