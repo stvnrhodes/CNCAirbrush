@@ -11,6 +11,8 @@ PORT = 2000
 import math
 import socket
 import os
+import thread
+import wx
 from binascii import hexlify, unhexlify
 from struct import pack, unpack
 
@@ -66,6 +68,8 @@ class Machine:
     self.height = None
     self.normal = None
     self.units = 'in'
+    self.pan_angle = 0
+    self.tilt_angle = 0
 
   def set_points(self, p1=None, p2=None, p3=None):
     """Set the points for the machine.
@@ -138,15 +142,16 @@ class Machine:
     elif axis in 'zZ':
       num = convert.unit_to_step(num, unit, axis)
       self.com.send_g00((0, 0, num))
-    elif axis in "Panpan":
-      num = convert.int_to_angle(num, axis)
-      self.com.send_g00((0, 0, num))
-
-  def _change_angle(self, angles):
-    """Send angle change command to machine"""
-    angles = [convert.angleToInt(x) for x in angles]
-    self.com.send('g03 ' + ' '.join([str(x) for x in location]))
-
+    elif axis in 'Panpan':
+      num = convert.int_to_angle(pan_angle + num, axis)
+      self.com.send_g03(num)
+    elif axis in 'Tiltilt':
+      num = convert.int_to_angle(tilt_angle + num, axis)
+      self.com.send_g04(num)
+      
+  def move(self, axis, num, unit = 'step'):
+    pass
+      
   def _get_img_data(self):
     return self.pic.resize(get_size()).convert('1')
 
@@ -168,7 +173,7 @@ class Communicate:
 
   def connect(self):
     """Attempt to connect to the WiFly"""
-    if '169.254.1.' not in socket.gethostbyname(socket.gethostname()):
+    if '169.254.' not in socket.gethostbyname(socket.gethostname()):
       self.m.update_status("Improper IP Address", 1)
     else:
       try:
@@ -185,59 +190,58 @@ class Communicate:
     self.connected = False
 
   def send_g00(self, location):
-    """Send the G00 Message, moving relative to current position"""
+    """Move relative to current position"""
     self.send('g00 ' + ' '.join([hexlify(pack('l', long(x)))
                                  for x in location]))
 
-  def send_g01(self, p1, p2):
+  def send_g01(self, location):
+    """Move based on absolute position"""
+    self.send('g01 ' + ' '.join([hexlify(pack('l', long(x)))
+                                 for x in location]))
+
+  def send_g02(self, p1, p2):
     """Send the information to go along the path for the image"""
-    self.send('g01 ' +  ' '.join([hexlify(pack('l', long(x)))
+    self.send('g02 ' +  ' '.join([hexlify(pack('l', long(x)))
                                  for x in p1]) +
               ' ' + ' '.join([hexlify(pack('l', long(x))) for x in p2]))
 
-  def send_g02(self, p1, p2, img):
+  def send_g03(self, p1, p2, img):
     """Send all the information needed to make the image"""
-    self.send('g01 ' +  ' '.join([hexlify(pack('l', long(x))) for x in p1]) + 
+    self.send('g03 ' +  ' '.join([hexlify(pack('l', long(x))) for x in p1]) + 
               ' ' + ' '.join([hexlify(pack('l', long(x))) for x in p2]))
     self.send_image(img)
 
-  def send_g03(self, angle):
-    """Send pan angle change command to machine"""
-    self.send('g03 ' + ' '.join([hexlify(pack('f', float(x)))
-                                     for x in location]))
-
   def send_g04(self, angle):
-    """Send tilt angle change command to machine"""
-    self.send('g03 ' + ' '.join([hexlify(pack('f', float(x)))
+    """Send pan angle change command to machine"""
+    self.send('g04 ' + ' '.join([hexlify(pack('f', float(x)))
                                      for x in location]))
 
-  def send_g05(self, duty, hz):
+  def send_g05(self, angle):
+    """Send tilt angle change command to machine"""
+    self.send('g05 ' + ' '.join([hexlify(pack('f', float(x)))
+                                     for x in location]))
+
+  def send_g06(self, duty, hz):
     """Send solenoid pwm command to the machine"""
-    self.send('g05 ' + hexlify(pack('f', float(duty))) + ' ' + 
+    self.send('g06 ' + hexlify(pack('f', float(duty))) + ' ' + 
                   hexlify(pack('f', long(hz))))
 
-  def send_g06(self, time):
+  def send_g07(self, time):
     """Send command to turn on the solenoid for time ms"""
-    self.send('g06 ' + hexlify(pack('l', long(time))))
+    self.send('g07 ' + hexlify(pack('l', long(time))))
     
-  def send_g07(self):
+  def send_g08(self):
     """Get positions and angles"""
-    data = self.send('g07').split()
+    data = self.send('g08').split()
     pos = [unpack('l', unhexlify(x)) for x in data[:3]]
     angle = [unpack('f', unhexlify(x)) for x in data[3:]]
     return pos, angle
-
-  def send_g08(self):
-    """Get positions"""
-    data = self.send('g08').split()
-    return [unpack('l', unhexlify(x)) for x in data]
+   
+  def send_g09(self, axes):
+    """Set axes to zero.  Axes is a boolean tuple of (x, y, z)"""
+    self.send('g19 ' + hexlify(pack('l', long(time))))
     
-  def send_g09(self):
-    """"Get angles"""
-    data = self.send('g09').split()
-    return [unpack('f', unhexlify(x)) for x in data]
-    
-  def send_g10(self):
+  def send_g0a(self):
     """Stop everything"""
     self.send('g10')
     

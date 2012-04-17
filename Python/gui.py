@@ -6,7 +6,6 @@ import wx, wx.combo
 from wx.lib.wordwrap import wordwrap
 import os
 import Image, ImageFilter
-from threading import Timer
 from mech import Machine, Convert
 
 IMG_SIZE = 400
@@ -614,6 +613,8 @@ class XYPanel(wx.Panel):
       win.Show(True)
 
   def _on_run(self, e):
+    busy = wx.BusyInfo("One moment please, sending image data to machine...")
+
     dlg = wx.MessageDialog(self, 'I haven\'t done this bit yet',
                            'TODO', wx.OK | wx.ICON_QUESTION)
     dlg.ShowModal()
