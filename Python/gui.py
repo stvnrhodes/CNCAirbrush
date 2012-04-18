@@ -17,6 +17,9 @@ class MainWindow(wx.Frame):
   def __init__(self, *args, **kwargs):
     """Create the primary window"""
     super(MainWindow, self).__init__(*args, **kwargs)
+    ib = wx.IconBundle()
+    ib.AddIconFromFile("cal.ico", wx.BITMAP_TYPE_ANY)
+    self.SetIcons(ib)
     self._init_menu_and_status()
     self.m = Machine(self)
     self._init_ui()

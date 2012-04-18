@@ -148,10 +148,10 @@ class Machine:
     elif axis in 'Tiltilt':
       num = convert.int_to_angle(tilt_angle + num, axis)
       self.com.send_g04(num)
-      
+
   def move(self, axis, num, unit = 'step'):
     pass
-      
+
   def _get_img_data(self):
     return self.pic.resize(get_size()).convert('1')
 
@@ -207,7 +207,7 @@ class Communicate:
 
   def send_g03(self, p1, p2, img):
     """Send all the information needed to make the image"""
-    self.send('g03 ' +  ' '.join([hexlify(pack('l', long(x))) for x in p1]) + 
+    self.send('g03 ' +  ' '.join([hexlify(pack('l', long(x))) for x in p1]) +
               ' ' + ' '.join([hexlify(pack('l', long(x))) for x in p2]))
     self.send_image(img)
 
@@ -223,28 +223,28 @@ class Communicate:
 
   def send_g06(self, duty, hz):
     """Send solenoid pwm command to the machine"""
-    self.send('g06 ' + hexlify(pack('f', float(duty))) + ' ' + 
+    self.send('g06 ' + hexlify(pack('f', float(duty))) + ' ' +
                   hexlify(pack('f', long(hz))))
 
   def send_g07(self, time):
     """Send command to turn on the solenoid for time ms"""
     self.send('g07 ' + hexlify(pack('l', long(time))))
-    
+
   def send_g08(self):
     """Get positions and angles"""
     data = self.send('g08').split()
     pos = [unpack('l', unhexlify(x)) for x in data[:3]]
     angle = [unpack('f', unhexlify(x)) for x in data[3:]]
     return pos, angle
-   
+
   def send_g09(self, axes):
     """Set axes to zero.  Axes is a boolean tuple of (x, y, z)"""
     self.send('g19 ' + hexlify(pack('l', long(time))))
-    
+
   def send_g0a(self):
     """Stop everything"""
     self.send('g10')
-    
+
   def send(self, msg):
     """Send the message to the machine"""
     if not self.connected:

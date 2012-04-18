@@ -87,6 +87,7 @@ elif '5' in ans:
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   s.connect((HOST, PORT))
   s.send("q")
+  time.sleep(2)
   with open('a.bmp', 'rb') as f:
     num = s.send(hexlify(f.read()))
     print "We sent this many bytes: " + repr(num)
