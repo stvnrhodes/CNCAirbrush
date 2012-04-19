@@ -23,15 +23,21 @@ class MainWindow(wx.Frame):
     self._init_menu_and_status()
     self.m = Machine(self)
     self._init_ui()
+    timer = wx.Timer(self)
+    timer.Start(500)
+    self.Bind(wx.EVT_TIMER, self.update)
+
+  def update(self, e):
+    print heyooooo
 
   def _init_menu_and_status(self):
     """Initialize the menu bar and status bar"""
     menubar = wx.MenuBar()
     fileMenu = wx.Menu()
-    fshortcuts = fileMenu.Append(wx.ID_ANY, "S&hortcut List",
-                                 "Show a list of all the shortcut keys")
-    fsettings = fileMenu.Append(wx.ID_ANY, "&Settings",
-                                "Edit settings for the program")
+#    fshortcuts = fileMenu.Append(wx.ID_ANY, "S&hortcut List",
+#                                 "Show a list of all the shortcut keys")
+#    fsettings = fileMenu.Append(wx.ID_ANY, "&Settings",
+#                                "Edit settings for the program")
     fabout = fileMenu.Append(wx.ID_ABOUT, "&About",
                              " Information about this program")
     fquit = fileMenu.Append(wx.ID_EXIT, "E&xit", " Quit Application")
@@ -44,8 +50,8 @@ class MainWindow(wx.Frame):
     self.sb.SetStatusWidths([-2,-1])
     self.sb.SetStatusText("No Communication", 1)
 
-    self.Bind(wx.EVT_MENU, self.OnShortcuts, fshortcuts)
-    self.Bind(wx.EVT_MENU, self.OnSettings, fsettings)
+#    self.Bind(wx.EVT_MENU, self.OnShortcuts, fshortcuts)
+#    self.Bind(wx.EVT_MENU, self.OnSettings, fsettings)
     self.Bind(wx.EVT_MENU, self.OnAbout, fabout)
     self.Bind(wx.EVT_MENU, self.OnQuit, fquit)
 
@@ -61,6 +67,7 @@ class MainWindow(wx.Frame):
     bottom_horizontal_sizer = wx.BoxSizer(wx.HORIZONTAL)
     bottom_horizontal_sizer.Add(self.plane_points, 0, wx.ALIGN_BOTTOM)
     bottom_horizontal_sizer.Add(wx.Size(), 1,  wx.EXPAND)
+    mini_sizer = wx.BoxSizer(wx.VERTICAL)
     bottom_horizontal_sizer.Add(self.arrow_dial, 0, wx.ALIGN_BOTTOM)
     bottom_horizontal_sizer.Add(self.positions, 0, wx.ALIGN_BOTTOM)
     self.main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -129,12 +136,12 @@ class AxisEdit(wx.Panel):
                               label=(self.axis + ':'))
     self.num = wx.TextCtrl(self, wx.ID_ANY, validator=NumValidator())
     self.num.Disable()
-    self.set_button = wx.Button(self, size=(-1,-1), label="Go")
-    self.Bind(wx.EVT_BUTTON, self._set_values, self.set_button)
+ #   self.set_button = wx.Button(self, size=(-1,-1), label="Go")
+ #   self.Bind(wx.EVT_BUTTON, self._set_values, self.set_button)
     s = wx.BoxSizer(wx.HORIZONTAL)
     s.Add(self.text, 0, flag = wx.ALIGN_CENTER_VERTICAL)
     s.Add(self.num, 0, flag = wx.ALIGN_CENTER_VERTICAL)
-    s.Add(self.set_button, 0, flag = wx.ALIGN_CENTER_VERTICAL)
+ #   s.Add(self.set_button, 0, flag = wx.ALIGN_CENTER_VERTICAL)
     self.SetSizer(s)
     self.mode = 'zero'
 
@@ -142,11 +149,11 @@ class AxisEdit(wx.Panel):
     """Enable GoTo Ability"""
     if goto_flag:
       self.num.Enable()
-      self._bon(self.set_button)
+#      self._bon(self.set_button)
       self.mode = 'goto'
     else:
       self.num.Disable()
-      self._boff(self.set_button)
+#      self._boff(self.set_button)
       self.mode = 'zero'
 
   def _boff(self, a):
@@ -179,12 +186,12 @@ class AxisEdit(wx.Panel):
       # TODO: make machine zero
 
   def get_num(self):
-    """Get the number from the TextCtrl.  If it's not a number, return none"""
+    """Get the number from the TextCtrl.  If it's not a number, return 0"""
     _val = self.num.GetValue()
     try:
       return float(_val)
     except ValueError:
-      return None
+      return 0
 
 
 class Positions(wx.Panel):
@@ -215,19 +222,22 @@ class Positions(wx.Panel):
     horizontal_sizer = wx.BoxSizer(wx.HORIZONTAL)
     horizontal_sizer.AddMany([(self.goto_button, 0, wx.ALIGN_CENTER),
                     (wx.StaticText(self, wx.ID_ANY,
-                    "            Units:"), 0, wx.ALIGN_CENTER),
+                    "Units:"), 0, wx.ALIGN_CENTER),
                     (self.goto_unit_select, 0, wx.ALIGN_CENTER)])
 
     vertical_sizer = wx.BoxSizer(wx.VERTICAL)
-    vertical_sizer.Add(pos_sizer, 0)
+    vertical_sizer.Add(pos_sizer, 0, wx.ALIGN_RIGHT)
     vertical_sizer.Add(horizontal_sizer, 1, wx.ALIGN_CENTER)
     self.SetSizer(vertical_sizer)
-    timer = wx.Timer(self)
-    timer.Start(500)
-    self.Bind(wx.EVT_TIMER, self._update_xyz)
 
   def _goto_mode(self, e):
     goto_flag = self.goto_button.Value
+    if goto_flag:
+      self.goto_button.SetLabel("Go!")
+    else:
+      self.m.move((self.x.get_num(), self.y.get_num(), self.z.get_num(),
+                 self.pan.get_num(), self.tilt.get_num()))
+      self.goto_button.SetLabel("Go to a Position")
     self.x.enable_goto(goto_flag)
     self.y.enable_goto(goto_flag)
     self.z.enable_goto(goto_flag)
@@ -335,7 +345,8 @@ class ArrowDial(wx.Panel):
     if axis in 'xXyYzZ':
       self.m.jog(axis, direction*self.trans_num.GetValue(),
                  self.trans_units.GetStringSelection())
-    print 'Jog ' + axis + 'in' + str(direction)
+    elif axis in 'PanpanTiltilt':
+      self.m.jog(axis, direction*self.rot_num.GetValue())
 
 
 class ChoosePoint(wx.Panel):
@@ -456,7 +467,7 @@ class PlanePoints(wx.Panel):
                               (s[0], s[2], s[1], s[2]))
     else:
       self.size_text.SetLabel("Image Size is undefined")
-   
+
 
 class NumValidator(wx.PyValidator):
   """Only allow numbers to be entered in number fields"""
@@ -497,6 +508,7 @@ class XYPanel(wx.Panel):
     self.parent = parent
     self.m = parent.m
     self.img = None
+    self.img_edit = None
 
     preview_button = wx.Button(self, wx.ID_ANY, "Preview")
     self.Bind(wx.EVT_BUTTON, self._on_preview, preview_button)
@@ -506,10 +518,10 @@ class XYPanel(wx.Panel):
     self.Bind(wx.EVT_BUTTON, self._on_run, run_button)
 
     practice_run_button = wx.Button(self, wx.ID_ANY, "Run Without Painting")
-    self.Bind(wx.EVT_BUTTON, self._on_run, practice_run_button)
+    self.Bind(wx.EVT_BUTTON, self._on_fake_run, practice_run_button)
 
     self.fileselect = FileImageSelectorCombo(self, size=(150,-1))
-    possibleColors = ["Greyscale", "Red", "Green", "Blue", "Final Image"]
+    possibleColors = ["Greyscale", "Red", "Green", "Blue", "Final Image", "Edge Detection"]
     self.threshold_slider = wx.Slider(self, wx.ID_ANY, 127, 0, 255,
                                       size = (IMG_SIZE, -1))
     self.Bind(wx.EVT_SCROLL_CHANGED, self._draw_altered_image,
@@ -529,22 +541,28 @@ class XYPanel(wx.Panel):
     self.orig_image_display.SetDropTarget(dt)
 
     left_sizer = wx.BoxSizer(wx.VERTICAL)
-    left_sizer.Add(self.orig_image_display, flag = wx.ALIGN_CENTER)
-    left_sizer.Add(self.fileselect, flag = wx.ALIGN_CENTER)
-    left_sizer.Add(run_button, flag = wx.ALIGN_CENTER)
-    left_sizer.Add(practice_run_button, flag = wx.ALIGN_CENTER)
+    left_sizer.AddSpacer(5)
+    left_sizer.Add(self.orig_image_display, flag =
+                   wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
+    left_sizer.Add(self.fileselect, flag =
+                   wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
+    left_sizer.Add(run_button, flag =
+                   wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
+    left_sizer.Add(practice_run_button, flag =
+                   wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
 
     self.wx_img = wx.EmptyBitmap(IMG_SIZE, IMG_SIZE)
     self.editImg = wx.StaticBitmap(self, wx.ID_ANY,
                    wx.EmptyBitmap(IMG_SIZE, IMG_SIZE))
     right_sizer = wx.BoxSizer(wx.VERTICAL)
-    right_sizer.Add(self.editImg, flag = wx.ALIGN_CENTER)
-    right_sizer.Add(self.threshold_slider, flag = wx.ALIGN_CENTER)
-    right_sizer.Add(filter_sizer, flag = wx.ALIGN_CENTER)
+    right_sizer.AddSpacer(5)
+    right_sizer.Add(self.editImg, flag = wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
+    right_sizer.Add(self.threshold_slider, flag = wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
+    right_sizer.Add(filter_sizer, flag = wx.wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
 
     sizer = wx.BoxSizer(wx.HORIZONTAL)
-    sizer.Add(left_sizer, 1, wx.ALIGN_CENTER)
-    sizer.Add(right_sizer, 1, wx.ALIGN_CENTER)
+    sizer.Add(left_sizer, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
+    sizer.Add(right_sizer, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
     self.SetSizer(sizer)
 
   def set_image(self, img):
@@ -571,17 +589,19 @@ class XYPanel(wx.Panel):
     elif x == 3:
       bw = source[2].point(lambda j:j > cutoff and 255)
       s = [bw, bw, bw]
-    else:
+    elif x == 4:
       for i in range(3):
         s.append(source[i].point(lambda j:j > cutoff and 255))
-    imgEdit = Image.merge('RGB', (s[0],s[1],s[2]))
+    else:
+      bw = self.img.convert('L').filter(ImageFilter.FIND_EDGES).point(lambda j:j < cutoff and 255)
+      s = [bw, bw, bw]
+    self.img_edit = Image.merge('RGB', (s[0],s[1],s[2]))
     myWxImage = wx.EmptyImage(IMG_SIZE, IMG_SIZE)
-    myWxImage.SetData(imgEdit.resize((IMG_SIZE,
+    myWxImage.SetData(self.img_edit.resize((IMG_SIZE,
                       IMG_SIZE)).convert('RGB').tostring())
     self.editImg.SetBitmap(myWxImage.ConvertToBitmap())
 
   def _on_preview(self, e):
-    # TODO: Properly size preview window
     if self.parent.plane_points.in_edit():
       dlg = wx.MessageDialog(self, "You can\'t show a preview of the proper "
                              "size while editing the size of the drawing area "
@@ -605,23 +625,58 @@ class XYPanel(wx.Panel):
                                    "sense at all.  It\'s just silly",
                                    "Undefined Picture", wx.OK|wx.ICON_ERROR)
       dlg.ShowModal()
-      dlg.Destroy() 
+      dlg.Destroy()
     else:
       size = self.m.get_pic_pixel_count()
       win = SamplePic(self, "Preview", style=wx.DEFAULT_FRAME_STYLE |
-                      wx.TINY_CAPTION_HORIZ, size=size, img=self.img,
+                      wx.TINY_CAPTION_HORIZ, size=size, img=self.img_edit,
                       x=self.color_filter.GetSelection(),
                       cutoff=self.threshold_slider.GetValue())
       win.CenterOnParent(wx.BOTH)
       win.Show(True)
 
-  def _on_run(self, e):
-    busy = wx.BusyInfo("One moment please, sending image data to machine...")
+  def _on_fake_run(self, e):
+    if self.parent.plane_points.in_edit():
+      dlg = wx.MessageDialog(self, "You can\'t send the image to the machine "
+                             "while still choosing where to place the image. "
+                             "Stop being a dummy.",
+                             "Still Editing Drawing Area", wx.OK|wx.ICON_ERROR)
+      dlg.ShowModal()
+      dlg.Destroy()
+    elif not self.m.all_points_defined():
+      dlg = wx.MessageDialog(self, "You can\'t print out an image if you "
+                                   "haven't defined all of its points. Stop "
+                                   "being a dummy.",
+                                   "Undefined Points", wx.OK|wx.ICON_ERROR)
+      dlg.ShowModal()
+      dlg.Destroy()
+    else:
+      self.m.draw(use_solenoid=False)
 
-    dlg = wx.MessageDialog(self, 'I haven\'t done this bit yet',
-                           'TODO', wx.OK | wx.ICON_QUESTION)
-    dlg.ShowModal()
-    dlg.Destroy()
+  def _on_run(self, e):
+    if self.parent.plane_points.in_edit():
+      dlg = wx.MessageDialog(self, "You can\'t send the image to the machine "
+                             "while still choosing where to place the image. "
+                             "Stop being a dummy.",
+                             "Still Editing Drawing Area", wx.OK|wx.ICON_ERROR)
+      dlg.ShowModal()
+      dlg.Destroy()
+    elif not self.m.all_points_defined():
+      dlg = wx.MessageDialog(self, "You can\'t print out an image if you "
+                                   "haven't defined all of its points. Stop "
+                                   "being a dummy.",
+                                   "Undefined Points", wx.OK|wx.ICON_ERROR)
+      dlg.ShowModal()
+      dlg.Destroy()
+    elif not self.img:
+      dlg = wx.MessageDialog(self, "You can\'t print a picture if "
+                                   "you haven't chosen the picture. "
+                                   "Stop being a dummy.",
+                                   "Undefined Picture", wx.OK|wx.ICON_ERROR)
+      dlg.ShowModal()
+      dlg.Destroy()
+    else:
+      self.m.draw(use_solenoid=True, img=self.edit_img)
 
 
 class FileImageSelectorCombo(wx.combo.ComboCtrl):
@@ -691,38 +746,12 @@ class SamplePic(wx.MiniFrame):
                size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE):
     wx.MiniFrame.__init__(self, parent, wx.ID_ANY, title, pos, size, style)
     panel = wx.Panel(self, wx.ID_ANY)
-
-    source = img.resize(size).split()
-    s = []
-    if x == 0:
-      bw = img.resize(size).convert('L').point(lambda j:j > cutoff and 255)
-      s = [bw, bw, bw]
-    elif x == 1:
-      bw = source[0].point(lambda j:j > cutoff and 255)
-      s = [bw, bw, bw]
-    elif x == 2:
-      bw = source[1].point(lambda j:j > cutoff and 255)
-      s = [bw, bw, bw]
-    elif x == 3:
-#      s.append(Image.new("L", self.img.size))
-      bw = source[2].point(lambda j:j > cutoff and 255)
-      s = [bw, bw, bw]
-    else:
-      for i in range(3):
-        s.append(source[i].point(lambda j:j > cutoff and 255))
-    imgEdit = Image.merge('RGB', (s[0],s[1],s[2]))
-
     myWxImage = wx.EmptyImage(size[0], size[1])
-    myWxImage.SetData(imgEdit.convert('RGB').tostring())
+    myWxImage.SetData(img.resize(size).convert('RGB').tostring())
     self.img = wx.StaticBitmap(self, wx.ID_ANY, myWxImage.ConvertToBitmap())
-    self.Bind(wx.EVT_LEFT_DCLICK, self.OnCloseMe)
     self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
-  def OnCloseMe(self, event):
-    self.Close(True)
-
   def OnCloseWindow(self, event):
-    print "OnCloseWindow"
     self.Destroy()
 
 

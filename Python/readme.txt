@@ -2,7 +2,7 @@ This program is used to interface with the CNC Airbrush that Group 13 is creatin
 
 Command list (All variables are long integers except where specified):
 g00 x y z = Move relative to current position
-g01 x y z = Move based on absolute position
+g01 x y z pan tilt= Move based on absolute position
 g02 x1 y1 z1 x2 y2 z2 = Go through the stepper motions of making an image
 g03 x1 y1 z1 x2 y2 z2 imageData = Make image with corners at current position,
                                   (x1,y1,z1), and (x2,y2,z2).  Imagedata is a
@@ -13,31 +13,29 @@ g06 dutycycle hertz  = Turn solenoid on for the specified Hz and duty cycle
                        (duty cycle is float between 0 and 1, hertz is float)
 g07 time = Turn solenoid on for the specified time in ms
 g08 = Query for x, y, z, pan, tilt
-g09 axis = Zero axes, use the 3 LSB as flags to determine axes
 g0a = Make everything stop
 
-g28 = Move to home position (minimum x, y, z)
-s stepsPerPixel defaultFeedrate = Set various parameters
 
 TODO(4/11/2012):
-Make Run change to Stop when in motion
 Add option to change tilt to image size
 Add option to trigger solenoid (hertz, duty cycle)
-No run if points not selected
-Add color changing for altered image
 Use kinematics to change image size on image tilt
-Autochange image size when zeroing position
 Auto update position via events
-Allow holding down buttons
-Remove Final Image option
-Add keyboard shortcuts for changing position
-Add double clicking to close preview
-Prevent drawing in upper hemisphere
-Alert for errors
-Only allow running if not editing image size
 Add options  menu with feedrate, reversing motors
-Change commands to threads
 error if transmit byte count is off
+Make Run change to Stop when in motion
+
+Add color changing for altered image - low priority
+Allow holding down buttons - low priority
+Remove Final Image option - low priority
+Add keyboard shortcuts for changing position - low priority
+Add double clicking to close preview - low priority
+
+No run if points not selected - DONE
+Prevent drawing in upper hemisphere - DONE
+Alert for errors - DONE
+Only allow running if not editing image size - DONE
+Change commands to threads - DONE
 Get Sockets working - DONE
 Add option to disable solenoid for a run - DONE
 Add text saying image size - DONE
@@ -48,5 +46,5 @@ Update status text - DONE
 
 Program that lets you send orders over command line - DONE
 Program that sends an image over serial
-Parse BMP
-Parse Integer
+Parse BMP - DONE
+Parse Integer - DONE
