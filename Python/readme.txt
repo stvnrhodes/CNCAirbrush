@@ -19,12 +19,12 @@ g0a = Make everything stop
 TODO(4/11/2012):
 Add option to change tilt to image size
 Add option to trigger solenoid (hertz, duty cycle)
-Use kinematics to change image size on image tilt
+Use kinematics to change xyz on tilt
 Auto update position via events
 Add options  menu with feedrate, reversing motors
 error if transmit byte count is off
-Make Run change to Stop when in motion
 
+Make Run change to Stop when in motion - low priority
 Add color changing for altered image - low priority
 Allow holding down buttons - low priority
 Remove Final Image option - low priority

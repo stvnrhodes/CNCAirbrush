@@ -23,12 +23,12 @@ class MainWindow(wx.Frame):
     self._init_menu_and_status()
     self.m = Machine(self)
     self._init_ui()
-    timer = wx.Timer(self)
-    timer.Start(500)
-    self.Bind(wx.EVT_TIMER, self.update)
+   # self.timer = wx.Timer(self)
+   # self.timer.Start(2000)
+   # self.Bind(wx.EVT_TIMER, self._update)
 
-  def update(self, e):
-    print heyooooo
+  def _update(self, e):
+    self.m.query_position()
 
   def _init_menu_and_status(self):
     """Initialize the menu bar and status bar"""
@@ -134,14 +134,11 @@ class AxisEdit(wx.Panel):
     self.axis = axis
     self.text = wx.StaticText(self, wx.ID_ANY, size = (25,-1),
                               label=(self.axis + ':'))
-    self.num = wx.TextCtrl(self, wx.ID_ANY, validator=NumValidator())
+    self.num = wx.TextCtrl(self, wx.ID_ANY, '0', validator=NumValidator())
     self.num.Disable()
- #   self.set_button = wx.Button(self, size=(-1,-1), label="Go")
- #   self.Bind(wx.EVT_BUTTON, self._set_values, self.set_button)
     s = wx.BoxSizer(wx.HORIZONTAL)
     s.Add(self.text, 0, flag = wx.ALIGN_CENTER_VERTICAL)
     s.Add(self.num, 0, flag = wx.ALIGN_CENTER_VERTICAL)
- #   s.Add(self.set_button, 0, flag = wx.ALIGN_CENTER_VERTICAL)
     self.SetSizer(s)
     self.mode = 'zero'
 
@@ -149,41 +146,10 @@ class AxisEdit(wx.Panel):
     """Enable GoTo Ability"""
     if goto_flag:
       self.num.Enable()
-#      self._bon(self.set_button)
       self.mode = 'goto'
     else:
       self.num.Disable()
-#      self._boff(self.set_button)
       self.mode = 'zero'
-
-  def _boff(self, a):
-    if self.axis in 'XYZxyx':
-      a.SetLabel("Zero")
-    else:
-      a.Hide()
-
-  def _bon(self, a):
-    if self.axis in 'XYZxyx':
-      a.SetLabel("Go")
-    else:
-      a.Show()
-
-  def _set_values(self, e):
-    if self.mode == 'goto':
-      num = self.get_num()
-      if num == None:
-        dlg = wx.MessageDialog(self, 'Now dat just ain\'t a proper number!',
-                               'I\'m afraid I can\'t let you do that...',
-                               wx.OK | wx.ICON_EXCLAMATION
-                               )
-        dlg.ShowModal()
-        dlg.Destroy()
-      else:
-        print 'goto ' + str(self.get_num()) + ' on ' + self.axis
-        self.m.jog(self.axis, num, self.parent.get_units())
-    else:
-      print 'zero ' + self.axis
-      # TODO: make machine zero
 
   def get_num(self):
     """Get the number from the TextCtrl.  If it's not a number, return 0"""
@@ -193,6 +159,10 @@ class AxisEdit(wx.Panel):
     except ValueError:
       return 0
 
+  def set_num(self, input):
+    """Change the displayed number to the input"""
+    if self.mode == 'zero':
+      self.num.SetValue(input)
 
 class Positions(wx.Panel):
   """Array of motor positions"""
@@ -252,9 +222,14 @@ class Positions(wx.Panel):
     self.m.set_units(self.get_units())
     pass
 
-  def _update_xyz(self, e):
-    pos = self.parent.m.get_position()
-    print 'hi'
+  def update(self, values):
+    """Given all motor and servo positions, updates the displayed values"""
+    self.x.set_value(values[0])
+    self.y.set_value(values[1])
+    self.z.set_value(values[2])
+    self.pan.set_value(values[3])
+    self.tilt.set_value(values[4])
+    
 
 
 class ArrowDial(wx.Panel):
@@ -416,8 +391,8 @@ class ChoosePoint(wx.Panel):
                          self._tofloat(self.z)))
 
   def _set_values(self, e):
-    self.update_point((0,0,0))
-    # TODO: Get Data
+    xyz = self.m.get_real_xyz()
+    self._update_point(xyz)
 
   def _tofloat(self, text):
     """Get the number from the TextCtrl.  If it's not a number, make it 0.0"""

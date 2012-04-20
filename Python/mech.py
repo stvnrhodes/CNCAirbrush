@@ -1,3 +1,8 @@
+# mech.py
+
+DISTANCE_A = 1 # inch
+DISTANCE_B = 1 # inch
+DISTANCE_C = 1 # inch
 X_STEP_TO_INCH = 200/.2
 Y_STEP_TO_INCH = 200/.2
 Z_STEP_TO_INCH = 200/.125
@@ -52,9 +57,6 @@ class Convert:
     return factor
 
 
-convert = Convert()
-
-
 class Machine:
   """The class that will send data to the machine."""
 
@@ -73,7 +75,6 @@ class Machine:
     self.pan_angle = .5
     self.tilt_angle = 0
 
-
   def all_points_defined(self):
     return self.base and self.height
 
@@ -88,7 +89,7 @@ class Machine:
       self.com.send_g03(self.base.tuple(), self.height.tuple(), img)
     else:
       self.com.send_g02(self.base.tuple(), self.height.tuple())
-    
+
   def get_longest_side_size(self):
     """Returns the size in steps of the picture."""
     base = Vector(self._tuple_to_step(self.base.tuple()))
@@ -106,11 +107,18 @@ class Machine:
     else:
       return None
 
-  def get_position(self):
-    """Queries the machine for the current position of X, Y Z, Pan, and Tilt"""
-    #Is this function necessary?
-    return (self.pan_angle, self.tilt_angle)
-
+  def get_real_xyz(self):
+    """Convert machine xyz to real world xyz"""
+    theta = convert.percent_to_angle(self.pan_angle, 'pan') * math.pi / 180
+    phi = convert.percent_to_angle(self.tilt_angle, 'tilt') * math.pi / 180
+    x, y, z = self._step_to_tuple(self.xyz)
+    x = x + math.sin(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
+                                       DISTANCE_C * math.sin(phi))
+    y = y + math.cos(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
+                                       DISTANCE_C * math.sin(phi))
+    z = z + DISTANCE_B * math.sin(phi) + DISTANCE_C * math.cos(phi)
+    return (x, y, z)
+    
   def set_points(self, p1=None, p2=None, p3=None):
     """Set the points for the machine.
     p1 and p2 determine the base, p3 determines the height
@@ -169,10 +177,15 @@ class Machine:
     self.tilt_angle = tilt
     self.com.send_g01(xyz + (pan, tilt))
 
+  def query_position(self):
+    """Queries the machine for the current position of X, Y Z, Pan, and Tilt"""
+    self.com.send_g08()
+    return (self.pan_angle, self.tilt_angle)
+
   def set_status_function(self, f):
     """Set the function that allows you to change the status bar"""
     self.update_status = f
-    
+
   def set_units(self, units):
     """Change the units to a new type"""
     self.units = units
@@ -185,14 +198,25 @@ class Machine:
     """Tells the machine to stop moving the stepper motors"""
     self.com.send_g0a();
 
+  def update_positions(self, values):
+    """Tells the position panel to update everything"""
+    print 'We got ' + repr(values)
+    self.pan_angle = values[4]
+    self.tilt_angle = values[5]
+    self.xyz = values[:3]
+    x, y, z = get_real_xyz()
+    pan = convert.percent_to_angle(self.pan_angle, 'pan')
+    tilt = convert.percent_to_angle(self.tilt_angle, 'tilt')
+    self.parent.position.update((x, y, z, pan, tilt))
+    
   def _constrain_num(self, x, range):
     if x < range[0]:
       return 0
     elif x > range[1]:
       return 1
     else:
-      return x     
-    
+      return x
+
   def _get_img_data(self):
     return self.pic.resize(get_pic_size()[:2]).convert('1')
 
@@ -205,6 +229,11 @@ class Machine:
             convert.unit_to_step(tuple[1], self.units, 'y'),
             convert.unit_to_step(tuple[2], self.units, 'z'))
 
+  def _step_to_tuple(self, tuple):
+    """Converting back the other way"""
+    return (convert.step_to_unit(tuple[0], self.units, 'x'),
+            convert.step_to_unit(tuple[1], self.units, 'y'),
+            convert.step_to_unit(tuple[2], self.units, 'z'))
 
 class Communicate:
   """This class handles the low-level communication details."""
@@ -233,9 +262,16 @@ class Communicate:
   def _send_response(self, delayed_result):
     id = delayed_result.getJobID()
     result = delayed_result.get()
-    if id in 'g08':
-      pass
-    
+    if id in 'g08' and isinstance(result, str):
+      args = result.split(' ')
+      if len(args) == 6:
+        x = unpack('l', unhexlify(args[1]))
+        y = unpack('l', unhexlify(args[2]))
+        z = unpack('l', unhexlify(args[3]))
+        pan = unpack('f', unhexlify(args[4]))
+        tilt = unpack('f', unhexlify(args[5]))
+        self.m.update_positions((x, y, z, pan, tilt))
+
   def send_g00(self, location):
     """Move relative to current position"""
     self.async_send('g00', location)
@@ -246,7 +282,7 @@ class Communicate:
       self.async_send('g01', location, 'lllff')
     else:
       self.blocking_send('g01', location, 'lllff')
-  
+
   def send_g02(self, p1, p2):
     """Send the information to go along the path for the image"""
     self.async_send('g02', p1 + p2)
@@ -262,7 +298,7 @@ class Communicate:
       self.async_send('g04', (angle,), 'f')
     else:
       self.blocking_send('g04', (angle,), 'f')
-      
+
   def send_g05(self, angle, blocking=False):
     """Send tilt angle change command to machine"""
     if not blocking:
@@ -296,11 +332,11 @@ class Communicate:
         data_str = msg_id
         for i in range(len(datatype)):
           data_str += ' ' + hexlify(pack(datatype[i], msg_data[i]))
-      delayedresult.startWorker(self._send_response, self.send, 
+      delayedresult.startWorker(self._send_response, self.send,
                                 wargs=(data_str,), jobID=msg_id)
     else:
       self.m.update_status("Command in progress", 0)
-    
+
   def blocking_send(self, msg_id, msg_data=(), datatype='l'):
     """Send the sync, waiting until done"""
     if len(datatype) == 1:
@@ -311,16 +347,14 @@ class Communicate:
       for i in range(len(datatype)):
         data_str += ' ' + hexlify(pack(datatype[i], msg_data[i]))
     self.send(data_str)
-    
+
   def send(self, msg):
     """Send the message to the machine"""
     try:
       self.connect()
       self.m.update_status("Sending to mBed: " + repr(msg), 0)
       self.s.send(msg)
-      self.s.recv(7)
       self.m.update_status("Sent to mBed: " + repr(msg), 0)
-      time.sleep(0.2)
       data = self.s.recv(1024)
       self.m.update_status("Command completed", 0)
       self.disconnect()
@@ -328,7 +362,7 @@ class Communicate:
     except socket.error, errormsg:
       self.m.update_status("Failure to send: " + repr(msg), 0)
       self.connect()
-      
+
   def send_image(self, img):
     """Send the image to the machine, ASCII encoded in base 16"""
     img.convert('1').save('.temp', 'bmp')
@@ -345,10 +379,6 @@ class Communicate:
     except socket.error, msg:
       self.m.update_status("Failed to send Image", 0)
       self.m.connect
-
-  def get_data(self):
-    """Retrieve relevant data from the machine"""
-    #Do we need this?
 
 
 class Vector:
@@ -451,3 +481,6 @@ class Vector:
 
   def z(self):
     return self.data[2]
+
+
+convert = Convert()
