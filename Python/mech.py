@@ -3,9 +3,9 @@
 DISTANCE_A = 1.0 # inch
 DISTANCE_B = 1.25 # inch
 DISTANCE_C = 3.25 # inch
-X_STEP_TO_INCH = 200/.2
-Y_STEP_TO_INCH = 200/.2
-Z_STEP_TO_INCH = 200/.125
+X_STEP_TO_INCH = 200/.2*16
+Y_STEP_TO_INCH = 200/.2*16
+Z_STEP_TO_INCH = 200/.125*16
 PAN_ANGLE_TO_PERCENT = 1.0 / 360
 TILT_ANGLE_TO_PERCENT = 1.0 / 90
 STEPS_PER_PIXEL = 3
@@ -88,10 +88,14 @@ class Machine:
 
     xyz = self._real_xyz_to_machine_xyz(self.p1.tuple())
     xyz = self._tuple_to_step(xyz)
-    base = self._real_xyz_to_machine_xyz(self.base.tuple())
+    base = self.base.tuple()
+    print "base: " +repr(base)
     base = self._tuple_to_step(base)
-    height = self._real_xyz_to_machine_xyz(self.height.tuple())
+    print "base: " +repr(base)
+    height = self.height.tuple()
+    print "height" + repr(height)
     height = self._tuple_to_step(height)
+    print "height" + repr(height)
     self.com.send_g01(xyz + (pan, tilt), blocking=True)
     if use_solenoid:
       self.com.send_g03(base, height, img.resize(self.get_pic_pixel_count()))
@@ -146,9 +150,9 @@ class Machine:
         self.normal = self.base.cross(self.height)
         if self.normal.theta() > 90:
           self.normal = -self.normal
-        print "Size: " + str(self.base) + ", " + str(self.height)
-        print self.normal.theta()
-        print self.normal.phi()
+        print "Size: " + repr(self.base) + ", " + repr(self.height)
+        print "Tilt:" + repr(self.normal.theta())
+        print "Pan:" + repr(self.normal.phi())
       else:
         self.height = None
 
@@ -234,7 +238,7 @@ class Machine:
                                        DISTANCE_C * math.sin(phi))
     y = y - math.cos(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
                                        DISTANCE_C * math.sin(phi))
-    z = z - DISTANCE_B * math.sin(phi) + DISTANCE_C * math.cos(phi)
+    z = z - DISTANCE_B * math.sin(phi) - DISTANCE_C * math.cos(phi)
     return (x, y, z)
   
   def _plane_points_defined(self):
