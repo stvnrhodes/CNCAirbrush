@@ -47,8 +47,7 @@ elif '2' in ans:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((HOST, PORT))
     s.sendall(input)
-    s.recv(1024)
-    time.sleep(.1)
+
     ans = s.recv(1024)
     print "Answer Recieved: " +  repr(ans)
     s.close()
@@ -91,6 +90,7 @@ elif '5' in ans:
   with open('a.bmp', 'rb') as f:
     num = s.send(hexlify(f.read()))
     print "We sent this many bytes: " + repr(num)
+  print repr(s.send('*'))
   ans = s.recv(1024)
   print "Answer Recieved: " +  repr(ans)
   s.close()

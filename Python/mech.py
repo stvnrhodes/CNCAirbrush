@@ -1,8 +1,8 @@
 # mech.py
 
-DISTANCE_A = 1 # inch
-DISTANCE_B = 1 # inch
-DISTANCE_C = 1 # inch
+DISTANCE_A = 1.0 # inch
+DISTANCE_B = 1.25 # inch
+DISTANCE_C = 3.25 # inch
 X_STEP_TO_INCH = 200/.2
 Y_STEP_TO_INCH = 200/.2
 Z_STEP_TO_INCH = 200/.125
@@ -63,6 +63,7 @@ class Machine:
   def __init__(self, *args, **kargs):
     self.parent = args[0]
     self.update_status = self.parent.sb.SetStatusText
+    self.read_status = self.parent.sb.GetStatusText
     self.com = Communicate(self)
     self.p1 = None
     self.p2 = None
@@ -84,11 +85,18 @@ class Machine:
                                                           'pan'), (0,1))
     tilt = self._constrain_num(convert.angle_to_percent(self.normal.theta(),
                                                            'tilt'), (0,1))
-    self.com.send_g01(self.p1.tuple() + (pan, tilt), blocking=True)
+
+    xyz = self._real_xyz_to_machine_xyz(self.p1.tuple())
+    xyz = self._tuple_to_step(xyz)
+    base = self._real_xyz_to_machine_xyz(self.base.tuple())
+    base = self._tuple_to_step(base)
+    height = self._real_xyz_to_machine_xyz(self.height.tuple())
+    height = self._tuple_to_step(height)
+    self.com.send_g01(xyz + (pan, tilt), blocking=True)
     if use_solenoid:
-      self.com.send_g03(self.base.tuple(), self.height.tuple(), img)
+      self.com.send_g03(base, height, img.resize(self.get_pic_pixel_count()))
     else:
-      self.com.send_g02(self.base.tuple(), self.height.tuple())
+      self.com.send_g02(base, height)
 
   def get_longest_side_size(self):
     """Returns the size in steps of the picture."""
@@ -139,6 +147,8 @@ class Machine:
         if self.normal.theta() > 90:
           self.normal = -self.normal
         print "Size: " + str(self.base) + ", " + str(self.height)
+        print self.normal.theta()
+        print self.normal.phi()
       else:
         self.height = None
 
@@ -168,7 +178,8 @@ class Machine:
 
   def move(self, values):
     """Moves machine in absolute, rather than relative"""
-    xyz = self._tuple_to_step(values[:3])
+    xyz = self._real_xyz_to_machine_xyz(values[:3])
+    xyz = self._tuple_to_step(xyz)
     pan = convert.angle_to_percent(values[3], 'pan')
     pan = self._constrain_num(pan, (0,1))
     self.pan_angle = pan
@@ -176,11 +187,6 @@ class Machine:
     tilt = self._constrain_num(tilt, (0,1))
     self.tilt_angle = tilt
     self.com.send_g01(xyz + (pan, tilt))
-
-  def query_position(self):
-    """Queries the machine for the current position of X, Y Z, Pan, and Tilt"""
-    self.com.send_g08()
-    return (self.pan_angle, self.tilt_angle)
 
   def set_status_function(self, f):
     """Set the function that allows you to change the status bar"""
@@ -201,14 +207,14 @@ class Machine:
   def update_positions(self, values):
     """Tells the position panel to update everything"""
     print 'We got ' + repr(values)
-    self.pan_angle = values[4]
-    self.tilt_angle = values[5]
+    self.pan_angle = values[3]
+    self.tilt_angle = values[4]
     self.xyz = values[:3]
-    x, y, z = get_real_xyz()
+    x, y, z = self.get_real_xyz()
     pan = convert.percent_to_angle(self.pan_angle, 'pan')
     tilt = convert.percent_to_angle(self.tilt_angle, 'tilt')
-    self.parent.position.update((x, y, z, pan, tilt))
-    
+    self.parent.positions.update((x, y, z, pan, tilt))
+
   def _constrain_num(self, x, range):
     if x < range[0]:
       return 0
@@ -220,6 +226,17 @@ class Machine:
   def _get_img_data(self):
     return self.pic.resize(get_pic_size()[:2]).convert('1')
 
+  def _real_xyz_to_machine_xyz(self, real_xyz):
+    theta = convert.percent_to_angle(self.pan_angle, 'pan') * math.pi / 180
+    phi = convert.percent_to_angle(self.tilt_angle, 'tilt') * math.pi / 180
+    x, y, z = real_xyz
+    x = x - math.sin(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
+                                       DISTANCE_C * math.sin(phi))
+    y = y - math.cos(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
+                                       DISTANCE_C * math.sin(phi))
+    z = z - DISTANCE_B * math.sin(phi) + DISTANCE_C * math.cos(phi)
+    return (x, y, z)
+  
   def _plane_points_defined(self):
     return self.p1 and self.p2 and self.p3
 
@@ -234,6 +251,7 @@ class Machine:
     return (convert.step_to_unit(tuple[0], self.units, 'x'),
             convert.step_to_unit(tuple[1], self.units, 'y'),
             convert.step_to_unit(tuple[2], self.units, 'z'))
+
 
 class Communicate:
   """This class handles the low-level communication details."""
@@ -256,13 +274,19 @@ class Communicate:
       except socket.error, msg:
         self.m.update_status("No Communication", 1)
 
+  def check_ip(self):
+    if '169.254.' not in socket.gethostbyname(socket.gethostname()):
+      self.m.update_status("Improper IP Address", 1)
+    elif "Improper IP Address" in self.m.read_status():
+      self.m.update_status("IP Address in proper subnet", 1)
+
   def disconnect(self):
     self.s.close()
 
   def _send_response(self, delayed_result):
     id = delayed_result.getJobID()
     result = delayed_result.get()
-    if id in 'g08' and isinstance(result, str):
+    if isinstance(result, str):
       args = result.split(' ')
       if len(args) == 6:
         x = unpack('l', unhexlify(args[1]))
@@ -270,7 +294,7 @@ class Communicate:
         z = unpack('l', unhexlify(args[3]))
         pan = unpack('f', unhexlify(args[4]))
         tilt = unpack('f', unhexlify(args[5]))
-        self.m.update_positions((x, y, z, pan, tilt))
+        self.m.update_positions(x + y + z + pan + tilt)
 
   def send_g00(self, location):
     """Move relative to current position"""
@@ -361,24 +385,25 @@ class Communicate:
       return data
     except socket.error, errormsg:
       self.m.update_status("Failure to send: " + repr(msg), 0)
-      self.connect()
-
+ 
   def send_image(self, img):
     """Send the image to the machine, ASCII encoded in base 16"""
     img.convert('1').save('.temp', 'bmp')
-    if not self.connected:
-      self.connect()
-    try:
-      self.m.update_status("Sending Image to mBed", 0)
-      with open('.temp', 'rb') as f:
-        self.s.send(hexlify(f.read()))
-      self.s.recv(1024)
-      os.remove('.temp')
-      self.m.update_status("Image Sent", 0)
-      self.disconnect()
-    except socket.error, msg:
-      self.m.update_status("Failed to send Image", 0)
-      self.m.connect
+    with open('.temp', 'rb') as f:
+      data = hexlify(f.read())
+      try:
+        self.connect()
+        for i in range(0, len(data), 4096):
+            self.m.update_status(
+                "Sending Image to mBed: {:>02,.2%}".format(i/len(data)), 0)
+            self.s.send(data[i:i+4096])
+            recieved = self.s.recv(1024)
+            print recieved
+        self.m.update_status("Image Sent", 0)
+        self.disconnect()
+      except socket.error, msg:
+        self.m.update_status("Failed to send Image", 0)
+    os.remove('.temp')
 
 
 class Vector:
@@ -417,7 +442,7 @@ class Vector:
     return Vector([a * x for x in self.data])
 
   def __neg__(self):
-    self.data = tuple([-x for x in self.data])
+    return Vector([-x for x in self.data])
 
   def cross(self, other):
     """Cross product."""

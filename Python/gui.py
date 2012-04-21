@@ -23,12 +23,12 @@ class MainWindow(wx.Frame):
     self._init_menu_and_status()
     self.m = Machine(self)
     self._init_ui()
-   # self.timer = wx.Timer(self)
-   # self.timer.Start(2000)
-   # self.Bind(wx.EVT_TIMER, self._update)
+    self.timer = wx.Timer(self)
+    self.timer.Start(2000)
+    self.Bind(wx.EVT_TIMER, self._check_ip)
 
-  def _update(self, e):
-    self.m.query_position()
+  def _check_ip(self, e):
+    self.m.com.check_ip()
 
   def _init_menu_and_status(self):
     """Initialize the menu bar and status bar"""
@@ -162,7 +162,7 @@ class AxisEdit(wx.Panel):
   def set_num(self, input):
     """Change the displayed number to the input"""
     if self.mode == 'zero':
-      self.num.SetValue(input)
+      self.num.SetValue(repr(input))
 
 class Positions(wx.Panel):
   """Array of motor positions"""
@@ -224,11 +224,11 @@ class Positions(wx.Panel):
 
   def update(self, values):
     """Given all motor and servo positions, updates the displayed values"""
-    self.x.set_value(values[0])
-    self.y.set_value(values[1])
-    self.z.set_value(values[2])
-    self.pan.set_value(values[3])
-    self.tilt.set_value(values[4])
+    self.x.set_num(values[0])
+    self.y.set_num(values[1])
+    self.z.set_num(values[2])
+    self.pan.set_num(values[3])
+    self.tilt.set_num(values[4])
     
 
 
@@ -488,6 +488,9 @@ class XYPanel(wx.Panel):
     preview_button = wx.Button(self, wx.ID_ANY, "Preview")
     self.Bind(wx.EVT_BUTTON, self._on_preview, preview_button)
 
+    save_button = wx.Button(self, wx.ID_ANY, "Save Image")
+    self.Bind(wx.EVT_BUTTON, self._on_save, save_button)
+    
     run_button = wx.Button(self, wx.ID_ANY, "Run", size=(120,60))
     run_button.SetBackgroundColour('#00ff00')
     self.Bind(wx.EVT_BUTTON, self._on_run, run_button)
@@ -510,6 +513,7 @@ class XYPanel(wx.Panel):
                      wx.ALIGN_CENTER),
     filter_sizer.Add(self.color_filter)
     filter_sizer.Add(preview_button)
+    filter_sizer.Add(save_button)
     self.orig_image_display = wx.StaticBitmap(self, wx.ID_ANY,
                                              wx.EmptyBitmap(IMG_SIZE, IMG_SIZE))
     dt = MyFileDropTarget(self.fileselect)
@@ -651,8 +655,12 @@ class XYPanel(wx.Panel):
       dlg.ShowModal()
       dlg.Destroy()
     else:
-      self.m.draw(use_solenoid=True, img=self.edit_img)
+      self.m.draw(use_solenoid=True, img=self.img_edit)
 
+  def _on_save(self, e):
+    if self.img_edit != None:
+      self.img_edit.convert('1').save('AlteredImage.bmp', 'bmp')
+          
 
 class FileImageSelectorCombo(wx.combo.ComboCtrl):
 

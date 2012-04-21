@@ -12,18 +12,18 @@ g05 tilt = Change tilt to the given value (Float between 0 and 1)
 g06 dutycycle hertz  = Turn solenoid on for the specified Hz and duty cycle 
                        (duty cycle is float between 0 and 1, hertz is float)
 g07 time = Turn solenoid on for the specified time in ms
-g08 = Query for x, y, z, pan, tilt
 g0a = Make everything stop
 
+All commands get a response of the x, y, z, pan, tilt positions
 
 TODO(4/11/2012):
 Add option to change tilt to image size
 Add option to trigger solenoid (hertz, duty cycle)
 Use kinematics to change xyz on tilt
-Auto update position via events
 Add options  menu with feedrate, reversing motors
 error if transmit byte count is off
 
+Auto update position via events - DONE
 Make Run change to Stop when in motion - low priority
 Add color changing for altered image - low priority
 Allow holding down buttons - low priority
