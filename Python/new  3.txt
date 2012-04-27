@@ -1,0 +1,6 @@
+todo:
+send image - DONE
+prevent movement if wrong entry
+make user see zero
+Round entries
+make units work
