@@ -60,15 +60,16 @@ class MainWindow(wx.Frame):
     self.arrow_dial = ArrowDial(self)
     self.plane_points = PlanePoints(self)
     self.positions = Positions(self)
+    self.pause_stop = PauseStop(self)
     top_horizontal_sizer = wx.BoxSizer(wx.HORIZONTAL)
     top_horizontal_sizer.Add(XYPanel(self), 1, wx.EXPAND)
-   # top_horizontal_sizer.Add(self.positions, 0,
-    #                         wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT)
     bottom_horizontal_sizer = wx.BoxSizer(wx.HORIZONTAL)
     bottom_horizontal_sizer.Add(self.plane_points, 0, wx.ALIGN_BOTTOM)
     bottom_horizontal_sizer.Add(wx.Size(), 1,  wx.EXPAND)
     mini_sizer = wx.BoxSizer(wx.VERTICAL)
-    bottom_horizontal_sizer.Add(self.arrow_dial, 0, wx.ALIGN_BOTTOM)
+    mini_sizer.Add(self.pause_stop)
+    mini_sizer.Add(self.arrow_dial)
+    bottom_horizontal_sizer.Add(mini_sizer, 0, wx.ALIGN_BOTTOM)
     bottom_horizontal_sizer.Add(self.positions, 0, wx.ALIGN_BOTTOM)
     self.main_sizer = wx.BoxSizer(wx.VERTICAL)
     self.main_sizer.Add(top_horizontal_sizer, 1, wx.EXPAND)
@@ -144,7 +145,7 @@ class AxisEdit(wx.Panel):
 
   def enable_goto(self, goto_flag):
     """Enable GoTo Ability"""
-    if goto_flag:
+    if goto_flag and self.axis in 'XxYyZz':
       self.num.Enable()
       self.mode = 'goto'
     else:
@@ -163,6 +164,7 @@ class AxisEdit(wx.Panel):
     """Change the displayed number to the input"""
     if self.mode == 'zero':
       self.num.SetValue(repr(input))
+
 
 class Positions(wx.Panel):
   """Array of motor positions"""
@@ -189,6 +191,7 @@ class Positions(wx.Panel):
                                     choices = self.units)
     self.goto_unit_select.SetSelection(0)
     self.Bind(wx.EVT_CHOICE, self._mech_unit_update, self.goto_unit_select)
+    self.goto_unit_select.Disable()
     horizontal_sizer = wx.BoxSizer(wx.HORIZONTAL)
     horizontal_sizer.AddMany([(self.goto_button, 0, wx.ALIGN_CENTER),
                     (wx.StaticText(self, wx.ID_ANY,
@@ -229,7 +232,6 @@ class Positions(wx.Panel):
     self.z.set_num(values[2])
     self.pan.set_num(values[3])
     self.tilt.set_num(values[4])
-    
 
 
 class ArrowDial(wx.Panel):
@@ -391,7 +393,7 @@ class ChoosePoint(wx.Panel):
                          self._tofloat(self.z)))
 
   def _set_values(self, e):
-    xyz = self.m.get_real_xyz()
+    xyz = self.m.xyz
     self._update_point(xyz)
 
   def _tofloat(self, text):
@@ -475,9 +477,77 @@ class NumValidator(wx.PyValidator):
     return
 
 
-class XYPanel(wx.Panel):
+class PauseStop(wx.Panel):
+  """A panel for telling the machine to stop or pause"""
 
+  def __init__(self, parent):
+    wx.Panel.__init__(self, parent=parent)
+    self.parent = parent
+    self.m = parent.m
+    self.stop_button = wx.Button(self, wx.ID_ANY, "Stop!")
+    self.stop_button.Disable()
+    self.Bind(wx.EVT_BUTTON, self._on_stop, self.stop_button)
+    self.pause_button = wx.Button(self, wx.ID_ANY, "Pause")
+    self.pause_button.Disable()
+    self.Bind(wx.EVT_BUTTON, self._on_pause, self.pause_button)
+    self.pause_mode = 'pause'
+    self.airbrush_change = wx.Button(self, wx.ID_ANY, "Change Airbrush")
+    self.Bind(wx.EVT_BUTTON, self._on_airbrush_change, self.airbrush_change)
+    self.solenoid_button = wx.ToggleButton(self, wx.ID_ANY, "Toggle Solenoid")
+    self.Bind(wx.EVT_TOGGLEBUTTON, self._on_solenoid, self.solenoid_button)
+    self.solenoid_on = False
+    topSizer = wx.BoxSizer(wx.HORIZONTAL)
+    bottomSizer = wx.BoxSizer(wx.HORIZONTAL)
+    topSizer.Add(self.pause_button)
+    topSizer.Add(self.stop_button)
+    bottomSizer.Add(self.airbrush_change)
+    bottomSizer.Add(self.solenoid_button)
+    mainSizer = wx.BoxSizer(wx.VERTICAL)
+    mainSizer.Add(topSizer)
+    mainSizer.Add(bottomSizer)
+    self.SetSizer(mainSizer)
+
+  def _on_stop(self, e):
+    self.m.stop()
+    self.pause_mode = 'pause'
+    self.pause_button.SetBackgroundColour('#ffff00')
+    self.pause_button.SetLabel('Pause')
+    
+  def _on_pause(self, e):
+    if 'pause' in self.pause_mode:
+      self.pause_mode = 'resume'
+      self.pause_button.SetBackgroundColour('#ff8800')
+      self.pause_button.SetLabel('Resume')
+    elif 'resume' in self.pause_mode:
+      self.pause_mode = 'pause'
+      self.pause_button.SetBackgroundColour('#ffff00')
+      self.pause_button.SetLabel('Pause')
+    self.m.pause()
+
+  def _on_solenoid(self, e):
+    self.m.run_solenoid(self.solenoid_button.Value)
+
+  def _on_airbrush_change(self, e):
+    self.m.goto_airbrush_change_position()
+    
+  def enable_stop(self, en):
+    self.pause_button.SetLabel('Pause')
+    if en:
+      self.stop_button.Enable()
+      self.stop_button.SetBackgroundColour('#ff0000')
+      self.pause_button.Enable()
+      self.pause_button.SetBackgroundColour('#ffff00')
+      self.pause_mode = 'pause'
+    else:
+      self.stop_button.Disable()
+      self.stop_button.SetBackgroundColour(wx.NullColor)
+      self.pause_button.Disable()
+      self.pause_button.SetBackgroundColour(wx.NullColor)
+
+
+class XYPanel(wx.Panel):
   """The panel for plotting XY graphs"""
+
   def __init__(self, parent):
     wx.Panel.__init__(self, parent=parent)
     self.parent = parent
@@ -490,7 +560,7 @@ class XYPanel(wx.Panel):
 
     save_button = wx.Button(self, wx.ID_ANY, "Save Image")
     self.Bind(wx.EVT_BUTTON, self._on_save, save_button)
-    
+
     run_button = wx.Button(self, wx.ID_ANY, "Run", size=(120,60))
     run_button.SetBackgroundColour('#00ff00')
     self.Bind(wx.EVT_BUTTON, self._on_run, run_button)
@@ -660,7 +730,7 @@ class XYPanel(wx.Panel):
   def _on_save(self, e):
     if self.img_edit != None:
       self.img_edit.convert('1').save('AlteredImage.bmp', 'bmp')
-          
+
 
 class FileImageSelectorCombo(wx.combo.ComboCtrl):
 

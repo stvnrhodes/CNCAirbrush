@@ -8,10 +8,11 @@ Y_STEP_TO_INCH = 200/.2*16
 Z_STEP_TO_INCH = 200/.125*16
 PAN_ANGLE_TO_PERCENT = 1.0 / 360
 TILT_ANGLE_TO_PERCENT = 1.0 / 90
-STEPS_PER_PIXEL = 3
+STEPS_PER_PIXEL = 600
 FEED_RATE = 100 # in steps/s
 HOST = '169.254.1.1'
 PORT = 2000
+DATA_LENGTH = 1024
 
 import math
 import socket
@@ -86,7 +87,7 @@ class Machine:
     tilt = self._constrain_num(convert.angle_to_percent(self.normal.theta(),
                                                            'tilt'), (0,1))
 
-    xyz = self._real_xyz_to_machine_xyz(self.p1.tuple())
+    xyz = self.p1.tuple()
     xyz = self._tuple_to_step(xyz)
     base = self.base.tuple()
     print "base: " +repr(base)
@@ -101,6 +102,13 @@ class Machine:
       self.com.send_g03(base, height, img.resize(self.get_pic_pixel_count()))
     else:
       self.com.send_g02(base, height)
+
+  def goto_airbrush_change_position(self):
+    """Move the servos to where the airbrush can easily be changed"""
+    pan = 0.5
+    tilt = 0.5
+    self.com.send_g04(pan, blocking=True)
+    self.com.send_g05(tilt, blocking=True)
 
   def get_longest_side_size(self):
     """Returns the size in steps of the picture."""
@@ -119,18 +127,6 @@ class Machine:
     else:
       return None
 
-  def get_real_xyz(self):
-    """Convert machine xyz to real world xyz"""
-    theta = convert.percent_to_angle(self.pan_angle, 'pan') * math.pi / 180
-    phi = convert.percent_to_angle(self.tilt_angle, 'tilt') * math.pi / 180
-    x, y, z = self._step_to_tuple(self.xyz)
-    x = x + math.sin(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
-                                       DISTANCE_C * math.sin(phi))
-    y = y + math.cos(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
-                                       DISTANCE_C * math.sin(phi))
-    z = z + DISTANCE_B * math.sin(phi) + DISTANCE_C * math.cos(phi)
-    return (x, y, z)
-    
   def set_points(self, p1=None, p2=None, p3=None):
     """Set the points for the machine.
     p1 and p2 determine the base, p3 determines the height
@@ -182,7 +178,7 @@ class Machine:
 
   def move(self, values):
     """Moves machine in absolute, rather than relative"""
-    xyz = self._real_xyz_to_machine_xyz(values[:3])
+    xyz = values[:3]
     xyz = self._tuple_to_step(xyz)
     pan = convert.angle_to_percent(values[3], 'pan')
     pan = self._constrain_num(pan, (0,1))
@@ -191,6 +187,17 @@ class Machine:
     tilt = self._constrain_num(tilt, (0,1))
     self.tilt_angle = tilt
     self.com.send_g01(xyz + (pan, tilt))
+
+  def pause(self):
+    """Tells the machine to pause"""
+    self.com.send_g09();
+
+  def run_solenoid(self, run_solenoid):
+    """run the solenoid"""
+    if run_solenoid:
+      self.com.send_g07(1)
+    else:
+      self.com.send_g07(0)
 
   def set_status_function(self, f):
     """Set the function that allows you to change the status bar"""
@@ -213,8 +220,8 @@ class Machine:
     print 'We got ' + repr(values)
     self.pan_angle = values[3]
     self.tilt_angle = values[4]
-    self.xyz = values[:3]
-    x, y, z = self.get_real_xyz()
+    self.xyz = self._step_to_tuple(values[:3])
+    x, y, z = self.xyz
     pan = convert.percent_to_angle(self.pan_angle, 'pan')
     tilt = convert.percent_to_angle(self.tilt_angle, 'tilt')
     self.parent.positions.update((x, y, z, pan, tilt))
@@ -230,17 +237,6 @@ class Machine:
   def _get_img_data(self):
     return self.pic.resize(get_pic_size()[:2]).convert('1')
 
-  def _real_xyz_to_machine_xyz(self, real_xyz):
-    theta = convert.percent_to_angle(self.pan_angle, 'pan') * math.pi / 180
-    phi = convert.percent_to_angle(self.tilt_angle, 'tilt') * math.pi / 180
-    x, y, z = real_xyz
-    x = x - math.sin(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
-                                       DISTANCE_C * math.sin(phi))
-    y = y - math.cos(theta)*(DISTANCE_A + DISTANCE_B * math.cos(phi) +
-                                       DISTANCE_C * math.sin(phi))
-    z = z - DISTANCE_B * math.sin(phi) - DISTANCE_C * math.cos(phi)
-    return (x, y, z)
-  
   def _plane_points_defined(self):
     return self.p1 and self.p2 and self.p3
 
@@ -288,6 +284,8 @@ class Communicate:
     self.s.close()
 
   def _send_response(self, delayed_result):
+    self.sending_command = False
+    self.m.parent.pause_stop.enable_stop(False)
     id = delayed_result.getJobID()
     result = delayed_result.get()
     if isinstance(result, str):
@@ -338,21 +336,29 @@ class Communicate:
     """Send solenoid pwm command to the machine"""
     self.async_send('g06', duty + hz, 'f')
 
-  def send_g07(self, time):
-    """Send command to turn on the solenoid for time ms"""
-    self.async_send('g07', (time,))
+  def send_g07(self, flag):
+    """Send command to turn on the solenoid (off if flag is 0)"""
+    self.async_send('g07', (flag,))
 
-  def send_g08(self):
-    """Get positions and angles"""
-    self.async_send('g08')
+  def send_g09(self):
+    """Pause/Resume machine"""
+    if not self.sending_command:
+      self.async_send('g09')
+    else:
+      self.s.send('g09')
 
   def send_g0a(self, e=None):
     """Stop everything"""
-    self.async_send('g0a')
+    if not self.sending_command:
+      self.async_send('g0a')
+    else:
+      self.s.send('g0a')
 
   def async_send(self, msg_id, msg_data=(), datatype='l'):
     """Create a thread to do the sync without stalling the gui"""
     if not self.sending_command:
+      self.sending_command = True
+      self.m.parent.pause_stop.enable_stop(True)
       if len(datatype) == 1:
         data_str = msg_id + ' ' + ' '.join([hexlify(pack(datatype, x))
                                             for x in msg_data])
@@ -389,20 +395,23 @@ class Communicate:
       return data
     except socket.error, errormsg:
       self.m.update_status("Failure to send: " + repr(msg), 0)
- 
+
   def send_image(self, img):
     """Send the image to the machine, ASCII encoded in base 16"""
     img.convert('1').save('.temp', 'bmp')
+    self.connect()
+    self.s.send('q')
+    time.sleep(0.2)
     with open('.temp', 'rb') as f:
       data = hexlify(f.read())
       try:
-        self.connect()
-        for i in range(0, len(data), 4096):
-            self.m.update_status(
-                "Sending Image to mBed: {:>02,.2%}".format(i/len(data)), 0)
-            self.s.send(data[i:i+4096])
-            recieved = self.s.recv(1024)
-            print recieved
+        for i in range(0, len(data), DATA_LENGTH):
+          self.m.update_status(
+              "Sending Image to mBed: {:>02,.2%}".format(float(i)/len(data)), 0)
+          num = self.s.send(data[i:i+DATA_LENGTH])
+          if num < DATA_LENGTH:
+            self.s.send('*')
+          recieved = self.s.recv(1024)
         self.m.update_status("Image Sent", 0)
         self.disconnect()
       except socket.error, msg:

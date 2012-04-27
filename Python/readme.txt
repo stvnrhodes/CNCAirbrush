@@ -11,10 +11,18 @@ g04 pan = Change pan to the given value (Float between 0 and 1)
 g05 tilt = Change tilt to the given value (Float between 0 and 1)
 g06 dutycycle hertz  = Turn solenoid on for the specified Hz and duty cycle 
                        (duty cycle is float between 0 and 1, hertz is float)
-g07 time = Turn solenoid on for the specified time in ms
+g07 flag = Turn solenoid on (if flag is 0, turn it off)
+g09 = Pause/Resume
 g0a = Make everything stop
 
 All commands get a response of the x, y, z, pan, tilt positions
+
+todo:
+send image - DONE
+prevent movement if wrong entry
+make user see zero
+Round entries
+make units work
 
 TODO(4/11/2012):
 Add option to change tilt to image size

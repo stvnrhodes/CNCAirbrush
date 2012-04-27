@@ -21,8 +21,9 @@ print ("\nI have 5 modes which you can choose from.  To quit, type exit.\n" +
        "   printing responses\n" +
        "3: Open a socket once and reuse it for messages, ignoring responses\n" +
        "4: Open a socket once and reuse it for messages, printing responses\n" +
-       "5: Send a.bmp")
-ans = raw_input("Which would you like? (1-5)")
+       "5: Send a.bmp\n" +
+       "6: Send a.bmp in parts")
+ans = raw_input("Which would you like? (1-6)")
 if '1' in ans:
   print ("Awesome!  I\'ll use a new socket for each message.  Just type whatever \n" +
          "you want to see and I'll send it out.")
@@ -87,7 +88,7 @@ elif '5' in ans:
   s.connect((HOST, PORT))
   s.send("q")
   time.sleep(2)
-  with open('a.bmp', 'rb') as f:
+  with open('a_backup.bmp', 'rb') as f:
     num = s.send(hexlify(f.read()))
     print "We sent this many bytes: " + repr(num)
   print repr(s.send('*'))
@@ -95,6 +96,22 @@ elif '5' in ans:
   print "Answer Recieved: " +  repr(ans)
   s.close()
   print ("Bye bye!")
+elif '6' in ans:
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.connect((HOST, PORT))
+  s.send('q')
+  time.sleep(0.2)
+  with open('b.bmp', 'rb') as f:
+     data = hexlify(f.read())
+     for i in range (0, len(data), 1024):
+       print float(i)/len(data)
+       num = s.send(data[i:i+1024])
+       print "We sent this many bytes: " + repr(num)
+       if num < 1024:
+         print repr(s.send('*'))
+       recieved = s.recv(1024)
+       print "Answer Received: " + repr(recieved)
+  s.close()
 else:
   print "I\'m sorry I couldn\'t be useful.  Byebye!"
   exit()
