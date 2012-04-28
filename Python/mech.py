@@ -9,6 +9,7 @@ Z_STEP_TO_INCH = 200/.125*16
 PAN_ANGLE_TO_PERCENT = 1.0 / 360
 TILT_ANGLE_TO_PERCENT = 1.0 / 90
 STEPS_PER_PIXEL = 600
+Z_STEPS_PER_PIXEL = 960
 FEED_RATE = 100 # in steps/s
 HOST = '169.254.1.1'
 PORT = 2000
@@ -90,13 +91,9 @@ class Machine:
     xyz = self.p1.tuple()
     xyz = self._tuple_to_step(xyz)
     base = self.base.tuple()
-    print "base: " +repr(base)
     base = self._tuple_to_step(base)
-    print "base: " +repr(base)
     height = self.height.tuple()
-    print "height" + repr(height)
     height = self._tuple_to_step(height)
-    print "height" + repr(height)
     self.com.send_g01(xyz + (pan, tilt), blocking=True)
     if use_solenoid:
       self.com.send_g03(base, height, img.resize(self.get_pic_pixel_count()))
@@ -474,8 +471,10 @@ class Vector:
     return dist
 
   def longest(self):
-    """The longest component of the vector."""
-    return max([abs(x) for x in self.data])
+    """The longest component of the vector.  Scale the Z"""
+    a = [abs(x) for x in self.data]
+    a[2] = (a[2] * STEPS_PER_PIXEL)/Z_STEPS_PER_PIXEL
+    return max(a)
 
   def normalize(self):
     """Change the value of the vector so its length is one."""

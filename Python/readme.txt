@@ -9,8 +9,6 @@ g03 x1 y1 z1 x2 y2 z2 imageData = Make image with corners at current position,
                                   B&W image, in BMP format.
 g04 pan = Change pan to the given value (Float between 0 and 1)
 g05 tilt = Change tilt to the given value (Float between 0 and 1)
-g06 dutycycle hertz  = Turn solenoid on for the specified Hz and duty cycle 
-                       (duty cycle is float between 0 and 1, hertz is float)
 g07 flag = Turn solenoid on (if flag is 0, turn it off)
 g09 = Pause/Resume
 g0a = Make everything stop
