@@ -1,0 +1,225 @@
+Traceback (most recent call last):
+  File "gui.py", line 525, in _on_pause
+  File "mech.pyc", line 190, in pause
+  File "mech.pyc", line 345, in send_g09
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10054] An existing connection was forcibly closed by the remote host
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10057] A request to send or receive data was disallowed because the socket is not connected and (when sending on a datagram socket using a sendto call) no address was supplied
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10057] A request to send or receive data was disallowed because the socket is not connected and (when sending on a datagram socket using a sendto call) no address was supplied
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10057] A request to send or receive data was disallowed because the socket is not connected and (when sending on a datagram socket using a sendto call) no address was supplied
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10057] A request to send or receive data was disallowed because the socket is not connected and (when sending on a datagram socket using a sendto call) no address was supplied
+Traceback (most recent call last):
+  File "gui.py", line 511, in _on_stop
+  File "mech.pyc", line 213, in stop
+  File "mech.pyc", line 352, in send_g0a
+socket.error: [Errno 10057] A request to send or receive data was disallowed because the socket is not connected and (when sending on a datagram socket using a sendto call) no address was supplied
