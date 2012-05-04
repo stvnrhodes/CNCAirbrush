@@ -6,7 +6,7 @@ import wx, wx.combo
 from wx.lib.wordwrap import wordwrap
 import os
 import Image, ImageFilter
-from mech import Machine, Convert
+import mech
 
 IMG_SIZE = 400
 
@@ -21,7 +21,7 @@ class MainWindow(wx.Frame):
     ib.AddIconFromFile("cal.ico", wx.BITMAP_TYPE_ANY)
     self.SetIcons(ib)
     self._init_menu_and_status()
-    self.m = Machine(self)
+    self.m = mech.Machine(self)
     self._init_ui()
     self.timer = wx.Timer(self)
     self.timer.Start(2000)
@@ -36,8 +36,8 @@ class MainWindow(wx.Frame):
     fileMenu = wx.Menu()
 #    fshortcuts = fileMenu.Append(wx.ID_ANY, "S&hortcut List",
 #                                 "Show a list of all the shortcut keys")
-#    fsettings = fileMenu.Append(wx.ID_ANY, "&Settings",
-#                                "Edit settings for the program")
+    fsettings = fileMenu.Append(wx.ID_ANY, "&Settings",
+                                "Edit settings for the program")
     fabout = fileMenu.Append(wx.ID_ABOUT, "&About",
                              " Information about this program")
     fquit = fileMenu.Append(wx.ID_EXIT, "E&xit", " Quit Application")
@@ -51,7 +51,7 @@ class MainWindow(wx.Frame):
     self.sb.SetStatusText("No Communication", 1)
 
 #    self.Bind(wx.EVT_MENU, self.OnShortcuts, fshortcuts)
-#    self.Bind(wx.EVT_MENU, self.OnSettings, fsettings)
+    self.Bind(wx.EVT_MENU, self.OnSettings, fsettings)
     self.Bind(wx.EVT_MENU, self.OnAbout, fabout)
     self.Bind(wx.EVT_MENU, self.OnQuit, fquit)
 
@@ -90,12 +90,9 @@ class MainWindow(wx.Frame):
     dlg.Destroy()
 
   def OnSettings(self, e):
-    dlg = wx.MessageDialog(self, 'I haven\'t done this bit yet',
-                           'TODO',
-                           wx.OK | wx.ICON_QUESTION
-                           )
-    dlg.ShowModal()
-    dlg.Destroy()
+    win = SettingsMenu(self)
+    win.CenterOnParent(wx.BOTH)
+    win.Show(True)
 
   def OnAbout(self, e):
     """Display the about dialog for the program."""
@@ -580,7 +577,7 @@ class XYPanel(wx.Panel):
     self.color_filter.SetSelection(0)
     filter_sizer = wx.BoxSizer(wx.HORIZONTAL)
     filter_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Filter:"), 0,
-                     wx.ALIGN_CENTER),
+                     wx.ALIGN_CENTER)
     filter_sizer.Add(self.color_filter)
     filter_sizer.Add(preview_button)
     filter_sizer.Add(save_button)
@@ -613,13 +610,6 @@ class XYPanel(wx.Panel):
     sizer.Add(left_sizer, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
     sizer.Add(right_sizer, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_TOP)
     self.SetSizer(sizer)
-
-  def set_image(self, img):
-    """Sets the PIL data for the image"""
-    self.img = img
-    self.w = wx.EmptyImage(IMG_SIZE, IMG_SIZE)
-    myWxImage.SetData(self.parent.img.resize((IMG_SIZE,
-                      IMG_SIZE)).convert('RGB').tostring())
 
   def _draw_altered_image(self, event = []):
     cutoff = self.threshold_slider.GetValue()
@@ -797,7 +787,8 @@ class SamplePic(wx.MiniFrame):
 
   def __init__(self, parent, title, img, x, cutoff, pos=wx.DefaultPosition,
                size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE):
-    wx.MiniFrame.__init__(self, parent, wx.ID_ANY, title, pos, size, style)
+    wx.MiniFrame.__init__(self, parent, wx.ID_ANY, title, pos,
+                          (size[0] + 16, size[1] + 34), style)
     panel = wx.Panel(self, wx.ID_ANY)
     myWxImage = wx.EmptyImage(size[0], size[1])
     myWxImage.SetData(img.resize(size).convert('RGB').tostring())
@@ -807,7 +798,59 @@ class SamplePic(wx.MiniFrame):
   def OnCloseWindow(self, event):
     self.Destroy()
 
+    
+class SettingsMenu(wx.MiniFrame):
+  """The menu for adjusting several settings"""
 
+  def __init__(self, parent, pos=wx.DefaultPosition,
+               size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE):
+    wx.MiniFrame.__init__(self, parent, wx.ID_ANY, "Settings", pos, size, style)
+    self.m = parent.m
+    sizer = wx.BoxSizer(wx.VERTICAL)
+    self.steps_per_pixel = wx.SpinCtrl(self, wx.ID_ANY, "600", size = (60,-1))
+    self.steps_per_pixel.SetRange(0, 10000)
+    self.pixel_buffer = wx.SpinCtrl(self, wx.ID_ANY, "4", size = (60,-1))
+    self.pixel_buffer.SetRange(0, 10000)
+    self.feedrate = wx.SpinCtrl(self, wx.ID_ANY, "200", size = (60,-1))
+    self.feedrate.SetRange(0, 10000)
+    self.initial_delay = wx.SpinCtrl(self, wx.ID_ANY, "1200", size = (60,-1))
+    self.initial_delay.SetRange(0, 10000)
+    send_button = wx.Button(self, wx.ID_ANY, "Send to Machine")
+    self.Bind(wx.EVT_BUTTON, self._on_send, send_button)
+    close_button = wx.Button(self, wx.ID_EXIT, "Close")
+    self.Bind(wx.EVT_BUTTON, self._on_close, close_button)
+
+    grid = wx.GridSizer(5, 2, 2, 2)
+    grid.Add(wx.StaticText(self, wx.ID_ANY, "Steps Per Pixel: "))
+    grid.Add(self.steps_per_pixel)
+    grid.Add(wx.StaticText(self, wx.ID_ANY, "Space between pixels: "))
+    grid.Add(self.pixel_buffer)
+    grid.Add(wx.StaticText(self, wx.ID_ANY, "Painting Feedrate: "))
+    grid.Add(self.feedrate)
+    grid.Add(wx.StaticText(self, wx.ID_ANY, "Initial Acceleration Delay: "))
+    grid.Add(self.initial_delay)
+    grid.Add(send_button)
+    grid.Add(close_button)
+
+    self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+    self.SetSizer(grid)
+    self.SetBackgroundColour((230,230,230))
+    self.SetTitle("Settings")
+    self.Centre()
+
+  def _on_send(self, e):
+    self.m.send_settings(self.steps_per_pixel.GetValue(),
+                         self.initial_delay.GetValue(),
+                         self.pixel_buffer.GetValue(),
+                         self.feedrate.GetValue())
+                         
+  def _on_close(self, e):
+    self.Close()
+    
+  def OnCloseWindow(self, event):
+    self.Destroy()
+    
+    
 if __name__ == '__main__':
   app = wx.App(False)
   frame = MainWindow(None)

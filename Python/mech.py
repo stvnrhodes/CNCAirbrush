@@ -1,15 +1,10 @@
 # mech.py
 
-DISTANCE_A = 1.0 # inch
-DISTANCE_B = 1.25 # inch
-DISTANCE_C = 3.25 # inch
 X_STEP_TO_INCH = 200/.2*16
 Y_STEP_TO_INCH = 200/.2*16
 Z_STEP_TO_INCH = 200/.125*16
-PAN_ANGLE_TO_PERCENT = 1.0 / 360
+PAN_ANGLE_TO_PERCENT = 1.0 / 180
 TILT_ANGLE_TO_PERCENT = 1.0 / 90
-STEPS_PER_PIXEL = 600
-Z_STEPS_PER_PIXEL = 960
 FEED_RATE = 100 # in steps/s
 HOST = '169.254.1.1'
 PORT = 2000
@@ -27,19 +22,19 @@ from struct import pack, unpack
 
 class Convert:
 
-  def percent_to_angle(cls, percent, axis='pan'):
-    return percent / cls._get_factor(axis)
+  def percent_to_angle(self, percent, axis='pan'):
+    return percent / self._get_factor(axis)
 
-  def angle_to_percent(cls, angle, axis='pan'):
-    return angle * cls._get_factor(axis)
+  def angle_to_percent(self, angle, axis='pan'):
+    return angle * self._get_factor(axis)
 
-  def step_to_unit(cls, step, unit='in', axis='x'):
-    return float(step) / cls._get_factor(axis, unit)
+  def step_to_unit(self, step, unit='in', axis='x'):
+    return float(step) / self._get_factor(axis, unit)
 
-  def unit_to_step(cls, num, unit='in', axis='x'):
-    return long(num * cls._get_factor(axis, unit))
+  def unit_to_step(self, num, unit='in', axis='x'):
+    return long(num * self._get_factor(axis, unit))
 
-  def _get_factor(cls, axis, unit='in'):
+  def _get_factor(self, axis, unit='in'):
     if axis in 'xX':
       factor = X_STEP_TO_INCH
     elif axis in 'yY':
@@ -67,6 +62,8 @@ class Machine:
     self.update_status = self.parent.sb.SetStatusText
     self.read_status = self.parent.sb.GetStatusText
     self.com = Communicate(self)
+    self.steps_per_pixel = 600
+    self.z_steps_per_pixel = 960
     self.p1 = None
     self.p2 = None
     self.p3 = None
@@ -103,7 +100,7 @@ class Machine:
   def goto_airbrush_change_position(self):
     """Move the servos to where the airbrush can easily be changed"""
     pan = 0.5
-    tilt = 0.5
+    tilt = 1
     self.com.send_g04(pan, blocking=True)
     self.com.send_g05(tilt, blocking=True)
 
@@ -115,7 +112,7 @@ class Machine:
 
   def get_pic_pixel_count(self):
     """Returns the size in pixels of the picture"""
-    return ([x / STEPS_PER_PIXEL for x in self.get_longest_side_size()])
+    return ([x / self.steps_per_pixel for x in self.get_longest_side_size()])
 
   def get_pic_size(self):
     """Get the size of the picture to be drawn"""
@@ -196,6 +193,10 @@ class Machine:
     else:
       self.com.send_g07(0)
 
+  def send_settings(self, spp, id, sb, fr):
+    self.steps_per_pixel = spp
+    self.com.send_g06([spp, id, sb, fr])
+      
   def set_status_function(self, f):
     """Set the function that allows you to change the status bar"""
     self.update_status = f
@@ -232,7 +233,7 @@ class Machine:
       return x
 
   def _get_img_data(self):
-    return self.pic.resize(get_pic_size()[:2]).convert('1')
+    return self.pic.resize(self.get_pic_size()[:2]).convert('1')
 
   def _plane_points_defined(self):
     return self.p1 and self.p2 and self.p3
@@ -329,9 +330,9 @@ class Communicate:
     else:
       self.blocking_send('g05', (angle,), 'f')
 
-  def send_g06(self, duty, hz):
-    """Send solenoid pwm command to the machine"""
-    self.async_send('g06', duty + hz, 'f')
+  def send_g06(self, settings):
+    """Send change settings command to the machine"""
+    self.async_send('g06', settings, 'l')
 
   def send_g07(self, flag):
     """Send command to turn on the solenoid (off if flag is 0)"""
@@ -473,7 +474,7 @@ class Vector:
   def longest(self):
     """The longest component of the vector.  Scale the Z"""
     a = [abs(x) for x in self.data]
-    a[2] = (a[2] * STEPS_PER_PIXEL)/Z_STEPS_PER_PIXEL
+    a[2] = (a[2] * 8)/5
     return max(a)
 
   def normalize(self):
