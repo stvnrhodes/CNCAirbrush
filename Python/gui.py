@@ -482,7 +482,8 @@ class PauseStop(wx.Panel):
     self.parent = parent
     self.m = parent.m
     self.stop_button = wx.Button(self, wx.ID_ANY, "Stop!")
-    self.stop_button.Disable()
+    self.stop_button.SetBackgroundColour('#ff0000')
+   # self.stop_button.Disable()
     self.Bind(wx.EVT_BUTTON, self._on_stop, self.stop_button)
     self.pause_button = wx.Button(self, wx.ID_ANY, "Pause")
     self.pause_button.Disable()
@@ -493,10 +494,13 @@ class PauseStop(wx.Panel):
     self.solenoid_button = wx.ToggleButton(self, wx.ID_ANY, "Toggle Solenoid")
     self.Bind(wx.EVT_TOGGLEBUTTON, self._on_solenoid, self.solenoid_button)
     self.solenoid_on = False
+    self.uhoh_button = wx.Button(self, wx.ID_ANY, "UhOh!")
+    self.Bind(wx.EVT_BUTTON, self._uhoh, self.uhoh_button)
     topSizer = wx.BoxSizer(wx.HORIZONTAL)
     bottomSizer = wx.BoxSizer(wx.HORIZONTAL)
     topSizer.Add(self.pause_button)
     topSizer.Add(self.stop_button)
+    topSizer.Add(self.uhoh_button)
     bottomSizer.Add(self.airbrush_change)
     bottomSizer.Add(self.solenoid_button)
     mainSizer = wx.BoxSizer(wx.VERTICAL)
@@ -504,6 +508,9 @@ class PauseStop(wx.Panel):
     mainSizer.Add(bottomSizer)
     self.SetSizer(mainSizer)
 
+  def _uhoh(self, e):
+    self.m.com.sending_command = False
+    
   def _on_stop(self, e):
     self.m.stop()
     self.pause_mode = 'pause'
@@ -530,14 +537,14 @@ class PauseStop(wx.Panel):
   def enable_stop(self, en):
     self.pause_button.SetLabel('Pause')
     if en:
-      self.stop_button.Enable()
+  #    self.stop_button.Enable()
       self.stop_button.SetBackgroundColour('#ff0000')
       self.pause_button.Enable()
       self.pause_button.SetBackgroundColour('#ffff00')
       self.pause_mode = 'pause'
     else:
-      self.stop_button.Disable()
-      self.stop_button.SetBackgroundColour(wx.NullColor)
+  #    self.stop_button.Disable()
+ #     self.stop_button.SetBackgroundColour(wx.NullColor)
       self.pause_button.Disable()
       self.pause_button.SetBackgroundColour(wx.NullColor)
 
