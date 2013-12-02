@@ -1,35 +1,35 @@
 - name: Home
-  href: /
+  href:
   url: /index.html
 
 - name: Blog
-  href: /blog
+  href: blog
   url: /blog/index.html
 
 - name: Members
-  href: /members
+  href: members
   url: /members/index.html
 
 - name: Sponsors
-  href: /sponsors
+  href: sponsors
   url: /sponsors/index.html
 
 - name: Gallery
-  href: /gallery
+  href: gallery
   url: /gallery/index.html
 
 - name: Video
-  href: /video
+  href: video
   url: /video/index.html
 
 - name: Software
-  href: /software
+  href: software
   url: /software/index.html
 
 - name: Electrical
-  href: /electrical
+  href: electrical
   url: /electrical/index.html
 
 - name: Mechanical
-  href: /mechanical
+  href: mechanical
   url: /mechanical/index.html
