@@ -13,7 +13,6 @@
 
 </script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<script src="{{ site.baseurl }}/js/cnc.js"></script>
 <title>{{ page.title }} | CNC Airbrush Painter</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="{{ site.baseurl }}/css/bootstrap.min.css" rel="stylesheet">
@@ -24,4 +23,5 @@
     <li {% if page.url == nav.url or (nav.name != "Home" and page.url contains nav.href %}class="active"{% endif %}><a href="{{ site.baseurl }}/{{ nav.href }}">{{ nav.name }}</a></li>{% endfor %}
   </ul>
   {{ content }}
+  <script src="{{ site.baseurl }}/js/cnc.js"></script>
 </div>
