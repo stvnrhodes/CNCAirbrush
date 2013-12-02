@@ -1,0 +1,2 @@
+exclude: [Gemfile, Gemfile.lock]
+permalink:  /blog/:title
