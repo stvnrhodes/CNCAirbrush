@@ -15,13 +15,13 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <title>{{ page.title }} | CNC Airbrush Painter</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="{{ site.baseurl }}css/bootstrap.min.css" rel="stylesheet">
-<link href="{{ site.baseurl }}css/cnc.css" rel="stylesheet">
+<link href="{{ site.baseurl }}/css/bootstrap.min.css" rel="stylesheet">
+<link href="{{ site.baseurl }}/css/cnc.css" rel="stylesheet">
 
 <div class="container">
   <ul class="nav nav-pills nav-justified" role="navigation">{% for nav in site.data.navlinks %}
     <li {% if page.url == nav.url or (nav.name != "Home" and page.url contains nav.href %}class="active"{% endif %}><a href="{{ site.baseurl }}/{{ nav.href }}">{{ nav.name }}</a></li>{% endfor %}
   </ul>
   {{ content }}
-  <script src="{{ site.baseurl }}js/cnc.js"></script>
+  <script src="{{ site.baseurl }}/js/cnc.js"></script>
 </div>
